@@ -1,6 +1,7 @@
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
-namespace ErrorOr;
+namespace VsaResults;
 
 /// <summary>
 /// A discriminated union of errors or a value.
@@ -8,6 +9,7 @@ namespace ErrorOr;
 /// <typeparam name="TValue">The type of the underlying <see cref="Value"/>.</typeparam>
 public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
 {
+    internal readonly ImmutableDictionary<string, object>? _context = null;
     private readonly TValue? _value = default;
     private readonly List<Error>? _errors = null;
 
@@ -17,7 +19,40 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
     /// <exception cref="InvalidOperationException">Thrown when this method is called.</exception>
     public ErrorOr()
     {
-        throw new InvalidOperationException("Default construction of ErrorOr<TValue> is invalid. Please use provided factory methods to instantiate.");
+        throw new InvalidOperationException(ExceptionMessages.DefaultConstruction);
+    }
+
+    /// <summary>
+    /// Internal constructor for creating an ErrorOr with a value and context (for context propagation).
+    /// </summary>
+    internal ErrorOr(TValue value, ImmutableDictionary<string, object>? context)
+    {
+        if (value is null)
+        {
+            throw new ArgumentNullException(nameof(value));
+        }
+
+        _value = value;
+        _context = context;
+    }
+
+    /// <summary>
+    /// Internal constructor for creating an ErrorOr with errors and context (for context propagation).
+    /// </summary>
+    internal ErrorOr(List<Error> errors, ImmutableDictionary<string, object>? context)
+    {
+        if (errors is null)
+        {
+            throw new ArgumentNullException(nameof(errors));
+        }
+
+        if (errors.Count == 0)
+        {
+            throw new ArgumentException(ExceptionMessages.EmptyErrorCollection, nameof(errors));
+        }
+
+        _errors = errors;
+        _context = context;
     }
 
     private ErrorOr(Error error)
@@ -32,9 +67,9 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
             throw new ArgumentNullException(nameof(errors));
         }
 
-        if (errors is null || errors.Count == 0)
+        if (errors.Count == 0)
         {
-            throw new ArgumentException("Cannot create an ErrorOr<TValue> from an empty collection of errors. Provide at least one error.", nameof(errors));
+            throw new ArgumentException(ExceptionMessages.EmptyErrorCollection, nameof(errors));
         }
 
         _errors = errors;
@@ -51,6 +86,12 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
     }
 
     /// <summary>
+    /// Gets the accumulated context for wide events / canonical log lines.
+    /// Context flows through all transformations and can be emitted as a single structured event.
+    /// </summary>
+    public IReadOnlyDictionary<string, object> Context => _context ?? ImmutableDictionary<string, object>.Empty;
+
+    /// <summary>
     /// Gets a value indicating whether the state is error.
     /// </summary>
     [MemberNotNullWhen(true, nameof(_errors))]
@@ -63,12 +104,17 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
     /// Gets the list of errors. If the state is not error, the list will contain a single error representing the state.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when no errors are present.</exception>
-    public List<Error> Errors => IsError ? _errors : throw new InvalidOperationException("The Errors property cannot be accessed when no errors have been recorded. Check IsError before accessing Errors.");
+    public List<Error> Errors => IsError ? _errors : throw new InvalidOperationException(ExceptionMessages.ErrorsAccessWithoutErrors);
 
     /// <summary>
     /// Gets the list of errors. If the state is not error, the list will be empty.
     /// </summary>
-    public List<Error> ErrorsOrEmptyList => IsError ? _errors : EmptyErrors.Instance;
+    /// <remarks>
+    /// Note: When in a non-error state, a new empty list is returned each time to prevent
+    /// accidental mutation of a shared instance. For read-only access, prefer checking
+    /// <see cref="IsError"/> first and accessing <see cref="Errors"/> only when true.
+    /// </remarks>
+    public List<Error> ErrorsOrEmptyList => IsError ? _errors : [];
 
     /// <summary>
     /// Gets the value.
@@ -80,7 +126,7 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
         {
             if (IsError)
             {
-                throw new InvalidOperationException("The Value property cannot be accessed when errors have been recorded. Check IsError before accessing Value.");
+                throw new InvalidOperationException(ExceptionMessages.ValueAccessWithErrors);
             }
 
             return _value;
@@ -97,7 +143,7 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
         {
             if (!IsError)
             {
-                throw new InvalidOperationException("The FirstError property cannot be accessed when no errors have been recorded. Check IsError before accessing FirstError.");
+                throw new InvalidOperationException(ExceptionMessages.FirstErrorAccessWithoutErrors);
             }
 
             return _errors[0];
@@ -107,8 +153,97 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
     /// <summary>
     /// Creates an <see cref="ErrorOr{TValue}"/> from a list of errors.
     /// </summary>
-    public static ErrorOr<TValue> From(List<Error> errors)
+    public static ErrorOr<TValue> From(List<Error> errors) =>
+        errors;
+
+    /// <summary>
+    /// Gets the value if not in error state, or throws an <see cref="InvalidOperationException"/> with a descriptive message.
+    /// </summary>
+    /// <param name="message">Optional custom message for the exception.</param>
+    /// <returns>The underlying value.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the state is error.</exception>
+    public TValue GetValueOrThrow(string? message = null)
     {
-        return errors;
+        if (IsError)
+        {
+            var errorCodes = string.Join(", ", _errors.Select(e => e.Code));
+            throw new InvalidOperationException(
+                message ?? $"Expected value but got {_errors.Count} error(s): [{errorCodes}]");
+        }
+
+        return _value;
+    }
+
+    /// <summary>
+    /// Attempts to get the value if this instance is not in an error state.
+    /// </summary>
+    /// <param name="value">When this method returns, contains the value if this instance is not in an error state; otherwise, the default value.</param>
+    /// <returns><c>true</c> if this instance contains a value; otherwise, <c>false</c>.</returns>
+    public bool TryGetValue([NotNullWhen(true)] out TValue? value)
+    {
+        if (IsError)
+        {
+            value = default;
+            return false;
+        }
+
+        value = _value;
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to get the errors if this instance is in an error state.
+    /// </summary>
+    /// <param name="errors">When this method returns, contains the errors if this instance is in an error state; otherwise, null.</param>
+    /// <returns><c>true</c> if this instance contains errors; otherwise, <c>false</c>.</returns>
+    public bool TryGetErrors([NotNullWhen(true)] out List<Error>? errors)
+    {
+        if (IsError)
+        {
+            errors = _errors;
+            return true;
+        }
+
+        errors = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the value if not in error state, or returns the specified default value.
+    /// </summary>
+    /// <param name="defaultValue">The value to return if this instance is in an error state.</param>
+    /// <returns>The underlying value if not in error state; otherwise, the default value.</returns>
+    public TValue? GetValueOrDefault(TValue? defaultValue = default) =>
+        IsError ? defaultValue : _value;
+
+    /// <summary>
+    /// Returns a string representation of this ErrorOr for debugging purposes.
+    /// </summary>
+    public override string ToString()
+    {
+        if (IsError)
+        {
+            var errorSummary = _errors.Count == 1
+                ? _errors[0].Code
+                : $"{_errors[0].Code} (+{_errors.Count - 1} more)";
+            return $"ErrorOr {{ IsError = True, Errors = [{errorSummary}] }}";
+        }
+
+        var valueStr = _value?.ToString() ?? "null";
+        if (valueStr.Length > 50)
+        {
+            valueStr = $"{valueStr[..47]}...";
+        }
+
+        return $"ErrorOr {{ IsError = False, Value = {valueStr} }}";
+    }
+
+    private static class ExceptionMessages
+    {
+        public const string DefaultConstruction = "Default construction of ErrorOr<TValue> is invalid. Please use provided factory methods to instantiate.";
+        public const string EmptyErrorCollection = "Cannot create an ErrorOr<TValue> from an empty collection of errors. Provide at least one error.";
+        public const string ErrorsAccessWithoutErrors = "The Errors property cannot be accessed when no errors have been recorded. Check IsError before accessing Errors.";
+        public const string ValueAccessWithErrors = "The Value property cannot be accessed when errors have been recorded. Check IsError before accessing Value.";
+        public const string FirstErrorAccessWithoutErrors = "The FirstError property cannot be accessed when no errors have been recorded. Check IsError before accessing FirstError.";
     }
 }

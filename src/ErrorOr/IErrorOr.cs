@@ -1,4 +1,4 @@
-namespace ErrorOr;
+namespace VsaResults;
 
 public interface IErrorOr<out TValue> : IErrorOr
 {

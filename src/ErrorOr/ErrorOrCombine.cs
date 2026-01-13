@@ -1,4 +1,4 @@
-namespace ErrorOr;
+namespace VsaResults;
 
 /// <summary>
 /// Provides methods for combining multiple ErrorOr results.
@@ -192,8 +192,180 @@ public static class ErrorOrCombine
     /// <typeparam name="TValue">The type of values in the ErrorOr instances.</typeparam>
     /// <param name="results">The array of ErrorOr instances to collect.</param>
     /// <returns>A list of all values or all accumulated errors.</returns>
-    public static ErrorOr<List<TValue>> Collect<TValue>(params ErrorOr<TValue>[] results)
+    public static ErrorOr<List<TValue>> Collect<TValue>(params ErrorOr<TValue>[] results) =>
+        Collect((IEnumerable<ErrorOr<TValue>>)results);
+
+    /// <summary>
+    /// Combines six ErrorOr results. Returns a tuple of values if all are successful,
+    /// or all accumulated errors if any failed.
+    /// </summary>
+    public static ErrorOr<(T1 First, T2 Second, T3 Third, T4 Fourth, T5 Fifth, T6 Sixth)> Combine<T1, T2, T3, T4, T5, T6>(
+        ErrorOr<T1> first,
+        ErrorOr<T2> second,
+        ErrorOr<T3> third,
+        ErrorOr<T4> fourth,
+        ErrorOr<T5> fifth,
+        ErrorOr<T6> sixth)
     {
-        return Collect((IEnumerable<ErrorOr<TValue>>)results);
+        var errors = new List<Error>();
+
+        if (first.IsError)
+        {
+            errors.AddRange(first.Errors);
+        }
+
+        if (second.IsError)
+        {
+            errors.AddRange(second.Errors);
+        }
+
+        if (third.IsError)
+        {
+            errors.AddRange(third.Errors);
+        }
+
+        if (fourth.IsError)
+        {
+            errors.AddRange(fourth.Errors);
+        }
+
+        if (fifth.IsError)
+        {
+            errors.AddRange(fifth.Errors);
+        }
+
+        if (sixth.IsError)
+        {
+            errors.AddRange(sixth.Errors);
+        }
+
+        if (errors.Count > 0)
+        {
+            return errors;
+        }
+
+        return (first.Value, second.Value, third.Value, fourth.Value, fifth.Value, sixth.Value);
+    }
+
+    /// <summary>
+    /// Combines seven ErrorOr results. Returns a tuple of values if all are successful,
+    /// or all accumulated errors if any failed.
+    /// </summary>
+    public static ErrorOr<(T1 First, T2 Second, T3 Third, T4 Fourth, T5 Fifth, T6 Sixth, T7 Seventh)> Combine<T1, T2, T3, T4, T5, T6, T7>(
+        ErrorOr<T1> first,
+        ErrorOr<T2> second,
+        ErrorOr<T3> third,
+        ErrorOr<T4> fourth,
+        ErrorOr<T5> fifth,
+        ErrorOr<T6> sixth,
+        ErrorOr<T7> seventh)
+    {
+        var errors = new List<Error>();
+
+        if (first.IsError)
+        {
+            errors.AddRange(first.Errors);
+        }
+
+        if (second.IsError)
+        {
+            errors.AddRange(second.Errors);
+        }
+
+        if (third.IsError)
+        {
+            errors.AddRange(third.Errors);
+        }
+
+        if (fourth.IsError)
+        {
+            errors.AddRange(fourth.Errors);
+        }
+
+        if (fifth.IsError)
+        {
+            errors.AddRange(fifth.Errors);
+        }
+
+        if (sixth.IsError)
+        {
+            errors.AddRange(sixth.Errors);
+        }
+
+        if (seventh.IsError)
+        {
+            errors.AddRange(seventh.Errors);
+        }
+
+        if (errors.Count > 0)
+        {
+            return errors;
+        }
+
+        return (first.Value, second.Value, third.Value, fourth.Value, fifth.Value, sixth.Value, seventh.Value);
+    }
+
+    /// <summary>
+    /// Combines eight ErrorOr results. Returns a tuple of values if all are successful,
+    /// or all accumulated errors if any failed.
+    /// </summary>
+    public static ErrorOr<(T1 First, T2 Second, T3 Third, T4 Fourth, T5 Fifth, T6 Sixth, T7 Seventh, T8 Eighth)> Combine<T1, T2, T3, T4, T5, T6, T7, T8>(
+        ErrorOr<T1> first,
+        ErrorOr<T2> second,
+        ErrorOr<T3> third,
+        ErrorOr<T4> fourth,
+        ErrorOr<T5> fifth,
+        ErrorOr<T6> sixth,
+        ErrorOr<T7> seventh,
+        ErrorOr<T8> eighth)
+    {
+        var errors = new List<Error>();
+
+        if (first.IsError)
+        {
+            errors.AddRange(first.Errors);
+        }
+
+        if (second.IsError)
+        {
+            errors.AddRange(second.Errors);
+        }
+
+        if (third.IsError)
+        {
+            errors.AddRange(third.Errors);
+        }
+
+        if (fourth.IsError)
+        {
+            errors.AddRange(fourth.Errors);
+        }
+
+        if (fifth.IsError)
+        {
+            errors.AddRange(fifth.Errors);
+        }
+
+        if (sixth.IsError)
+        {
+            errors.AddRange(sixth.Errors);
+        }
+
+        if (seventh.IsError)
+        {
+            errors.AddRange(seventh.Errors);
+        }
+
+        if (eighth.IsError)
+        {
+            errors.AddRange(eighth.Errors);
+        }
+
+        if (errors.Count > 0)
+        {
+            return errors;
+        }
+
+        return (first.Value, second.Value, third.Value, fourth.Value, fifth.Value, sixth.Value, seventh.Value, eighth.Value);
     }
 }

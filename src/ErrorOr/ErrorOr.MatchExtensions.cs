@@ -1,4 +1,4 @@
-namespace ErrorOr;
+namespace VsaResults;
 
 public static partial class ErrorOrExtensions
 {
@@ -13,12 +13,11 @@ public static partial class ErrorOrExtensions
     /// <param name="onValue">The function to execute if the state is a value.</param>
     /// <param name="onError">The function to execute if the state is an error.</param>
     /// <returns>The result of the executed function.</returns>
-    public static async Task<TNextValue> Match<TValue, TNextValue>(this Task<ErrorOr<TValue>> errorOr, Func<TValue, TNextValue> onValue, Func<List<Error>, TNextValue> onError)
-    {
-        var result = await errorOr.ConfigureAwait(false);
-
-        return result.Match(onValue, onError);
-    }
+    public static Task<TNextValue> Match<TValue, TNextValue>(
+        this Task<ErrorOr<TValue>> errorOr,
+        Func<TValue, TNextValue> onValue,
+        Func<List<Error>, TNextValue> onError) =>
+        errorOr.ThenSync(result => result.Match(onValue, onError));
 
     /// <summary>
     /// Asynchronously executes the appropriate function based on the state of the <see cref="ErrorOr{TValue}"/>.
@@ -31,12 +30,11 @@ public static partial class ErrorOrExtensions
     /// <param name="onValue">The function to execute if the state is a value.</param>
     /// <param name="onError">The function to execute if the state is an error.</param>
     /// <returns>The result of the executed function.</returns>
-    public static async Task<TNextValue> MatchAsync<TValue, TNextValue>(this Task<ErrorOr<TValue>> errorOr, Func<TValue, Task<TNextValue>> onValue, Func<List<Error>, Task<TNextValue>> onError)
-    {
-        var result = await errorOr.ConfigureAwait(false);
-
-        return await result.MatchAsync(onValue, onError);
-    }
+    public static Task<TNextValue> MatchAsync<TValue, TNextValue>(
+        this Task<ErrorOr<TValue>> errorOr,
+        Func<TValue, Task<TNextValue>> onValue,
+        Func<List<Error>, Task<TNextValue>> onError) =>
+        errorOr.ThenAsync(result => result.MatchAsync(onValue, onError));
 
     /// <summary>
     /// Executes the appropriate function based on the state of the <see cref="ErrorOr{TValue}"/>.
@@ -49,12 +47,11 @@ public static partial class ErrorOrExtensions
     /// <param name="onValue">The function to execute if the state is a value.</param>
     /// <param name="onError">The function to execute if the state is an error.</param>
     /// <returns>The result of the executed function.</returns>
-    public static async Task<TNextValue> MatchFirst<TValue, TNextValue>(this Task<ErrorOr<TValue>> errorOr, Func<TValue, TNextValue> onValue, Func<Error, TNextValue> onError)
-    {
-        var result = await errorOr.ConfigureAwait(false);
-
-        return result.MatchFirst(onValue, onError);
-    }
+    public static Task<TNextValue> MatchFirst<TValue, TNextValue>(
+        this Task<ErrorOr<TValue>> errorOr,
+        Func<TValue, TNextValue> onValue,
+        Func<Error, TNextValue> onError) =>
+        errorOr.ThenSync(result => result.MatchFirst(onValue, onError));
 
     /// <summary>
     /// Asynchronously executes the appropriate function based on the state of the <see cref="ErrorOr{TValue}"/>.
@@ -67,10 +64,9 @@ public static partial class ErrorOrExtensions
     /// <param name="onValue">The function to execute if the state is a value.</param>
     /// <param name="onError">The function to execute if the state is an error.</param>
     /// <returns>The result of the executed function.</returns>
-    public static async Task<TNextValue> MatchFirstAsync<TValue, TNextValue>(this Task<ErrorOr<TValue>> errorOr, Func<TValue, Task<TNextValue>> onValue, Func<Error, Task<TNextValue>> onError)
-    {
-        var result = await errorOr.ConfigureAwait(false);
-
-        return await result.MatchFirstAsync(onValue, onError);
-    }
+    public static Task<TNextValue> MatchFirstAsync<TValue, TNextValue>(
+        this Task<ErrorOr<TValue>> errorOr,
+        Func<TValue, Task<TNextValue>> onValue,
+        Func<Error, Task<TNextValue>> onError) =>
+        errorOr.ThenAsync(result => result.MatchFirstAsync(onValue, onError));
 }

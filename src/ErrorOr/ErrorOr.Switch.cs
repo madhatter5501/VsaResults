@@ -1,4 +1,4 @@
-namespace ErrorOr;
+namespace VsaResults;
 
 public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
 {
@@ -28,16 +28,8 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
     /// <param name="onValue">The asynchronous action to execute if the state is a value.</param>
     /// <param name="onError">The asynchronous action to execute if the state is an error.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task SwitchAsync(Func<TValue, Task> onValue, Func<List<Error>, Task> onError)
-    {
-        if (IsError)
-        {
-            await onError(Errors).ConfigureAwait(false);
-            return;
-        }
-
-        await onValue(Value).ConfigureAwait(false);
-    }
+    public Task SwitchAsync(Func<TValue, Task> onValue, Func<List<Error>, Task> onError) =>
+        IsError ? onError(Errors) : onValue(Value);
 
     /// <summary>
     /// Executes the appropriate action based on the state of the <see cref="ErrorOr{TValue}"/>.
@@ -65,14 +57,6 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
     /// <param name="onValue">The asynchronous action to execute if the state is a value.</param>
     /// <param name="onFirstError">The asynchronous action to execute with the first error if the state is an error.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task SwitchFirstAsync(Func<TValue, Task> onValue, Func<Error, Task> onFirstError)
-    {
-        if (IsError)
-        {
-            await onFirstError(FirstError).ConfigureAwait(false);
-            return;
-        }
-
-        await onValue(Value).ConfigureAwait(false);
-    }
+    public Task SwitchFirstAsync(Func<TValue, Task> onValue, Func<Error, Task> onFirstError) =>
+        IsError ? onFirstError(FirstError) : onValue(Value);
 }

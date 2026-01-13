@@ -1,0 +1,14 @@
+area/core:
+  - "src/ErrorOr/*.cs"
+area/aspnetcore:
+  - "src/ErrorOr/AspNetCore/**"
+area/features:
+  - "src/ErrorOr/Features/**"
+area/serialization:
+  - "src/ErrorOr/Serialization/**"
+documentation:
+  - "**/*.md"
+tests:
+  - "tests/**"
+ci:
+  - ".github/**"

@@ -2,12 +2,12 @@
 
 <img src="assets/icon.png" alt="drawing" width="700px"/></br>
 
-[![NuGet](https://img.shields.io/nuget/v/erroror.svg)](https://www.nuget.org/packages/erroror)
+[![NuGet](https://img.shields.io/nuget/v/vsaresults.svg)](https://www.nuget.org/packages/vsaresults)
 
-[![Build](https://github.com/amantinband/error-or/actions/workflows/build.yml/badge.svg)](https://github.com/amantinband/error-or/actions/workflows/build.yml)
+[![Build](https://github.com/madhatter5501/ErrorOr/actions/workflows/ci.yml/badge.svg)](https://github.com/madhatter5501/ErrorOr/actions/workflows/ci.yml)
 
-[![GitHub contributors](https://img.shields.io/github/contributors/amantinband/error-or)](https://GitHub.com/amantinband/error-or/graphs/contributors/) [![GitHub Stars](https://img.shields.io/github/stars/amantinband/error-or.svg)](https://github.com/amantinband/error-or/stargazers) [![GitHub license](https://img.shields.io/github/license/amantinband/error-or)](https://github.com/amantinband/error-or/blob/main/LICENSE)
-[![codecov](https://codecov.io/gh/amantinband/error-or/branch/main/graph/badge.svg?token=DR2EBIWK7B)](https://codecov.io/gh/amantinband/error-or)
+[![GitHub contributors](https://img.shields.io/github/contributors/madhatter5501/ErrorOr)](https://GitHub.com/madhatter5501/ErrorOr/graphs/contributors/) [![GitHub Stars](https://img.shields.io/github/stars/madhatter5501/ErrorOr.svg)](https://github.com/madhatter5501/ErrorOr/stargazers) [![GitHub license](https://img.shields.io/github/license/madhatter5501/ErrorOr)](https://github.com/madhatter5501/ErrorOr/blob/main/LICENSE)
+[![codecov](https://codecov.io/gh/madhatter5501/ErrorOr/branch/main/graph/badge.svg)](https://codecov.io/gh/madhatter5501/ErrorOr)
 
 ---
 
@@ -21,12 +21,14 @@ The original project is licensed under the MIT License. This fork extends the li
 
 ### A simple, fluent discriminated union of an error or a result.
 
-`dotnet add package ErrorOr`
+`dotnet add package VsaResults`
 
 </div>
 
 - [Give it a star ⭐!](#give-it-a-star-)
+- [Quick Start](#quick-start)
 - [Getting Started 🏃](#getting-started-)
+
   - [Replace throwing exceptions with `ErrorOr<T>`](#replace-throwing-exceptions-with-errorort)
   - [Support For Multiple Errors](#support-for-multiple-errors)
   - [Various Functional Methods and Extension Methods](#various-functional-methods-and-extension-methods)
@@ -70,7 +72,10 @@ The original project is licensed under the MIT License. This fork extends the li
   - [Custom error types](#custom-error-types)
 - [Built in result types (`Result.Success`, ..)](#built-in-result-types-resultsuccess-)
 - [Organizing Errors](#organizing-errors)
-- [Mediator + FluentValidation + `ErrorOr` 🤝](#mediator--fluentvalidation--erroror-)
+- [Feature Pipeline (VSA)](#feature-pipeline-vsa)
+- [Wide Events](#wide-events)
+- [Samples](#samples)
+- [API Reference](#api-reference)
 - [Contribution 🤲](#contribution-)
 - [Credits 🙏](#credits-)
 - [License 🪪](#license-)
@@ -79,7 +84,31 @@ The original project is licensed under the MIT License. This fork extends the li
 
 Loving it? Show your support by giving this project a star!
 
+# Quick Start
+
+Install the package:
+
+`dotnet add package VsaResults`
+
+Create and consume an `ErrorOr<T>` in a few lines:
+
+```cs
+public static ErrorOr<int> Parse(string input)
+    => int.TryParse(input, out var value)
+        ? value
+        : Error.Validation("Parse.Invalid", "Input must be a number");
+
+var message = Parse("42")
+    .Then(value => value * 2)
+    .Match(
+        value => $"Value: {value}",
+        errors => errors[0].Description);
+
+Console.WriteLine(message);
+```
+
 # Getting Started 🏃
+
 
 ## Replace throwing exceptions with `ErrorOr<T>`
 
@@ -688,6 +717,105 @@ ErrorOr<Deleted> DeleteUser(Guid id)
 }
 ```
 
+# Additional Methods
+
+## `Tap`
+
+`Tap` executes a side effect (like logging) without transforming the value, and returns the original ErrorOr unchanged.
+
+```cs
+result
+    .Tap(user => _logger.LogInformation($"Processing user {user.Id}"))
+    .Then(user => user.UpdateLastLogin())
+    .TapError(errors => _logger.LogWarning($"Failed with {errors.Count} errors"));
+```
+
+### `TapError` and `TapFirstError`
+
+```cs
+result
+    .TapError(errors => Console.WriteLine($"Errors: {string.Join(", ", errors.Select(e => e.Code))}"))
+    .TapFirstError(error => _metrics.RecordError(error.Type));
+```
+
+## `MapError`
+
+`MapError` transforms errors without affecting the value path. Useful for error enrichment or translation.
+
+```cs
+result.MapError(error => Error.Validation(
+    code: $"API.{error.Code}",
+    description: error.Description,
+    metadata: new Dictionary<string, object> { { "OriginalType", error.Type } }));
+```
+
+### `MapErrors`
+
+Transform the entire error list:
+
+```cs
+result.MapErrors(errors => errors
+    .Where(e => e.Type == ErrorType.Validation)
+    .ToList());
+```
+
+## `OrElse`
+
+Unlike `Else` which always recovers to a value, `OrElse` chains recovery attempts that might also fail.
+
+```cs
+// Try primary, then fallback to cache, then to default
+primarySource.GetUser(id)
+    .OrElse(_ => cache.GetUser(id))
+    .OrElse(_ => User.CreateDefault());
+```
+
+## `GetValueOrThrow`
+
+Safely extract the value or throw with a descriptive error message:
+
+```cs
+var user = result.GetValueOrThrow(); // Throws with error codes if failed
+var user = result.GetValueOrThrow("User must be present for this operation");
+```
+
+## `Flatten`
+
+Handle nested `ErrorOr<ErrorOr<T>>` scenarios:
+
+```cs
+ErrorOr<ErrorOr<User>> nested = GetNestedResult();
+ErrorOr<User> flattened = nested.Flatten();
+```
+
+## Tuple Deconstruction
+
+Deconstruct ErrorOr into its components:
+
+```cs
+var (value, errors) = result;
+if (errors is not null)
+{
+    // handle errors
+}
+else
+{
+    // use value
+}
+
+// Or with three parameters
+var (isError, value, errors) = result;
+```
+
+## `ErrorOrUnorderedEqualityComparer`
+
+Compare ErrorOr instances without considering error order:
+
+```cs
+var comparer = ErrorOrUnorderedEqualityComparer<int>.Instance;
+var areEqual = comparer.Equals(result1, result2); // true if same errors in any order
+```
+
 # Organizing Errors
 
 A nice approach, is creating a static class with the expected errors. For example:
@@ -715,52 +843,231 @@ public ErrorOr<float> Divide(int a, int b)
 }
 ```
 
-# [Mediator](https://github.com/jbogard/MediatR) + [FluentValidation](https://github.com/FluentValidation/FluentValidation) + `ErrorOr` 🤝
+# Feature Pipeline (VSA)
 
-A common approach when using `MediatR` is to use `FluentValidation` to validate the request before it reaches the handler.
+VsaResults includes a feature pipeline designed for Vertical Slice Architecture. Features encapsulate a complete vertical slice of functionality with built-in validation, execution, and observability.
 
-Usually, the validation is done using a `Behavior` that throws an exception if the request is invalid.
+## Feature Types
 
-Using `ErrorOr`, we can create a `Behavior` that returns an error instead of throwing an exception.
+| Interface | Pipeline Stages | Use Case |
+|-----------|-----------------|----------|
+| `IQueryFeature<TRequest, TResult>` | Validate → Execute Query | Read-only operations |
+| `IMutationFeature<TRequest, TResult>` | Validate → Enforce Requirements → Execute Mutation → Run Side Effects | State-changing operations |
 
-This plays nicely when the project uses `ErrorOr`, as the layer invoking the `Mediator`, similar to other components in the project, simply receives an `ErrorOr` and can handle it accordingly.
-
-Here is an example of a `Behavior` that validates the request and returns an error if it's invalid 👇
+## Query Feature Example
 
 ```cs
-public class ValidationBehavior<TRequest, TResponse>(IValidator<TRequest>? validator = null)
-    : IPipelineBehavior<TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
-        where TResponse : IErrorOr
+public static class GetUserById
 {
-    private readonly IValidator<TRequest>? _validator = validator;
+    public record Request(Guid Id);
 
-    public async Task<TResponse> Handle(
-        TRequest request,
-        RequestHandlerDelegate<TResponse> next,
-        CancellationToken cancellationToken)
+    public class Feature(
+        IFeatureValidator<Request> validator,
+        IFeatureQuery<Request, User> query)
+        : IQueryFeature<Request, User>
     {
-        if (_validator is null)
+        public IFeatureValidator<Request> Validator => validator;
+        public IFeatureQuery<Request, User> Query => query;
+    }
+
+    public class Validator : IFeatureValidator<Request>
+    {
+        public Task<ErrorOr<Request>> ValidateAsync(Request request, CancellationToken ct = default) =>
+            request.Id == Guid.Empty
+                ? Task.FromResult<ErrorOr<Request>>(Error.Validation("User.InvalidId", "User ID cannot be empty."))
+                : Task.FromResult<ErrorOr<Request>>(request);
+    }
+
+    public class Query(IUserRepository repository) : IFeatureQuery<Request, User>
+    {
+        public Task<ErrorOr<User>> ExecuteAsync(Request request, CancellationToken ct = default) =>
+            Task.FromResult(repository.GetById(request.Id));
+    }
+}
+
+// Execute the feature
+var feature = new GetUserById.Feature(new GetUserById.Validator(), new GetUserById.Query(repo));
+var result = await feature.ExecuteAsync(new GetUserById.Request(userId));
+```
+
+## Mutation Feature Example
+
+```cs
+public static class CreateUser
+{
+    public record Request(string Email, string Name);
+
+    public class Feature(
+        IFeatureValidator<Request> validator,
+        IFeatureMutator<Request, User> mutator,
+        IFeatureSideEffects<Request>? sideEffects = null)
+        : IMutationFeature<Request, User>
+    {
+        public IFeatureValidator<Request> Validator => validator;
+        public IFeatureMutator<Request, User> Mutator => mutator;
+        public IFeatureSideEffects<Request> SideEffects => sideEffects ?? NoOpSideEffects<Request>.Instance;
+    }
+
+    public class Validator : IFeatureValidator<Request>
+    {
+        public Task<ErrorOr<Request>> ValidateAsync(Request request, CancellationToken ct = default)
         {
-            return await next();
+            var errors = new List<Error>();
+            if (string.IsNullOrWhiteSpace(request.Email))
+                errors.Add(Error.Validation("User.InvalidEmail", "Email is required."));
+            if (string.IsNullOrWhiteSpace(request.Name))
+                errors.Add(Error.Validation("User.InvalidName", "Name is required."));
+
+            return errors.Count > 0
+                ? Task.FromResult<ErrorOr<Request>>(errors)
+                : Task.FromResult<ErrorOr<Request>>(request);
         }
+    }
 
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-
-        if (validationResult.IsValid)
+    public class Mutator(IUserRepository repository) : IFeatureMutator<Request, User>
+    {
+        public async Task<ErrorOr<User>> ExecuteAsync(FeatureContext<Request> context, CancellationToken ct = default)
         {
-            return await next();
+            var request = context.Request;
+
+            if (repository.ExistsByEmail(request.Email))
+                return Error.Conflict("User.DuplicateEmail", $"Email {request.Email} is already registered.");
+
+            var user = new User(Guid.NewGuid(), request.Email, request.Name, DateTime.UtcNow);
+            repository.Add(user);
+
+            // Add context for wide event logging
+            context.AddContext("user_id", user.Id);
+
+            return user;
         }
-
-        var errors = validationResult.Errors
-            .ConvertAll(error => Error.Validation(
-                code: error.PropertyName,
-                description: error.ErrorMessage));
-
-        return (dynamic)errors;
     }
 }
 ```
+
+## Pipeline Components
+
+| Component | Interface | Purpose |
+|-----------|-----------|---------|
+| **Validator** | `IFeatureValidator<TRequest>` | Validates the incoming request |
+| **Requirements** | `IFeatureRequirements<TRequest>` | Loads entities and enforces business rules (mutations only) |
+| **Mutator** | `IFeatureMutator<TRequest, TResult>` | Executes the core mutation logic |
+| **Query** | `IFeatureQuery<TRequest, TResult>` | Executes read-only queries |
+| **Side Effects** | `IFeatureSideEffects<TRequest>` | Runs post-success effects like notifications (mutations only) |
+
+Each component has a no-op default (`NoOpValidator`, `NoOpRequirements`, `NoOpSideEffects`) so you only implement what you need.
+
+# Wide Events
+
+Wide Events (also known as Canonical Log Lines) capture a single comprehensive structured log entry per feature execution. Instead of scattered log lines, you get one event with full context for debugging and observability.
+
+## Key Principles
+
+- **One event per execution** - Not scattered log lines throughout the code
+- **High cardinality fields** - `user_id`, `trace_id`, `feature_name` for precise filtering
+- **High dimensionality** - Many fields for rich querying in your observability stack
+- **Build throughout, emit once** - Context accumulates during execution, emitted at the end
+
+## Wide Event Fields
+
+The `FeatureWideEvent` includes:
+
+| Category | Fields |
+|----------|--------|
+| **Trace Context** | `TraceId`, `SpanId`, `ParentSpanId` |
+| **Feature Context** | `FeatureName`, `FeatureType`, `RequestType`, `ResultType` |
+| **Service Context** | `ServiceName`, `ServiceVersion`, `Environment`, `Region`, `Host` |
+| **Pipeline Metadata** | `ValidatorType`, `RequirementsType`, `MutatorType`, `SideEffectsType` |
+| **Timing** | `ValidationMs`, `RequirementsMs`, `ExecutionMs`, `SideEffectsMs`, `TotalMs` |
+| **Outcome** | `Outcome` (success, validation_failure, execution_failure, etc.) |
+| **Error Context** | `ErrorCode`, `ErrorType`, `ErrorMessage`, `FailedAtStage` |
+| **Business Context** | `RequestContext` dictionary with custom fields |
+
+## Using Wide Events
+
+```cs
+// Create an emitter (uses ILogger under the hood)
+var emitter = new SerilogWideEventEmitter(logger);
+
+// Execute with wide event emission
+var result = await feature.ExecuteAsync(request, emitter);
+```
+
+## Custom Emitters
+
+Implement `IWideEventEmitter` to integrate with your telemetry system:
+
+```cs
+public class OpenTelemetryWideEventEmitter : IWideEventEmitter
+{
+    public void Emit(FeatureWideEvent wideEvent)
+    {
+        // Emit to OpenTelemetry, Datadog, Honeycomb, etc.
+    }
+}
+```
+
+## Adding Business Context
+
+Add custom fields to the wide event during execution:
+
+```cs
+public class Mutator : IFeatureMutator<Request, User>
+{
+    public async Task<ErrorOr<User>> ExecuteAsync(FeatureContext<Request> context, CancellationToken ct)
+    {
+        // ... create user ...
+
+        // These fields appear in RequestContext
+        context.AddContext("user_id", user.Id);
+        context.AddContext("user_role", user.Role.ToString());
+        context.AddContext("welcome_email_sent", true);
+
+        return user;
+    }
+}
+```
+
+## Example Wide Event Output
+
+```json
+{
+  "FeatureName": "CreateUser",
+  "FeatureType": "Mutation",
+  "Outcome": "success",
+  "TotalMs": 45.23,
+  "ValidationMs": 1.2,
+  "RequirementsMs": 0,
+  "ExecutionMs": 43.8,
+  "SideEffectsMs": 0.23,
+  "TraceId": "abc123",
+  "RequestContext": {
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "user_role": "Admin"
+  }
+}
+```
+
+# Samples
+
+A complete sample Web API is available in `samples/VsaResults.Sample.WebApi` demonstrating:
+
+- **Query Features**: `GetUserById`, `GetAllUsers`, `GetAllProducts`
+- **Mutation Features**: `CreateUser`, `DeleteUser`, `ReserveStock`
+- **ASP.NET Core Integration**: Minimal APIs and MVC controllers
+- **Wide Event Emission**: Serilog integration
+- **Messaging**: MassTransit consumers with message-wide events
+
+Run the sample:
+
+```bash
+cd samples/VsaResults.Sample.WebApi
+dotnet run
+```
+
+# API Reference
+
+The NuGet packages include XML documentation. Generate a browsable reference site with tools like DocFX if you need hosted API docs.
 
 # Contribution 🤲
 

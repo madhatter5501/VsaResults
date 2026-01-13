@@ -1,4 +1,4 @@
-namespace ErrorOr;
+namespace VsaResults;
 
 public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
 {
@@ -19,7 +19,7 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
             return errorMapper?.Invoke(ex) ?? Error.Unexpected(
                 code: ex.GetType().Name,
                 description: ex.Message,
-                metadata: new Dictionary<string, object> { { "Exception", ex } });
+                metadata: new Dictionary<string, object> { { MetadataKeys.Exception, ex } });
         }
     }
 
@@ -42,7 +42,7 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
             return errorMapper?.Invoke(ex) ?? Error.Unexpected(
                 code: ex.GetType().Name,
                 description: ex.Message,
-                metadata: new Dictionary<string, object> { { "Exception", ex } });
+                metadata: new Dictionary<string, object> { { MetadataKeys.Exception, ex } });
         }
     }
 
@@ -64,5 +64,10 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
         {
             return await errorMapper(ex).ConfigureAwait(false);
         }
+    }
+
+    private static class MetadataKeys
+    {
+        public const string Exception = "Exception";
     }
 }

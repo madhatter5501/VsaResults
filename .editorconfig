@@ -70,3 +70,12 @@ dotnet_diagnostic.SA1642.severity = none
 
 # SA1516: Elements should be separated by blank line
 dotnet_diagnostic.SA1516.severity = none
+
+# Expression-bodied members - prefer expression syntax
+csharp_style_expression_bodied_methods = true
+csharp_style_expression_bodied_constructors = false
+csharp_style_expression_bodied_properties = true
+csharp_style_expression_bodied_indexers = true
+csharp_style_expression_bodied_accessors = true
+csharp_style_expression_bodied_lambdas = true
+csharp_style_expression_bodied_local_functions = true

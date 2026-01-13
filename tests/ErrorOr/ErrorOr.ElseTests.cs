@@ -1,5 +1,5 @@
-using ErrorOr;
 using FluentAssertions;
+using VsaResults;
 
 namespace Tests;
 

@@ -1,0 +1,33 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: vsaresults-rabbitmq
+    ports:
+      - "5672:5672"   # AMQP protocol
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../..
+      dockerfile: samples/VsaResults.Sample.WebApi/Dockerfile
+    container_name: vsaresults-api
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Messaging__Transport=RabbitMq
+      - Messaging__RabbitMq__Host=rabbitmq
+      - Messaging__RabbitMq__Port=5672
+      - Messaging__RabbitMq__Username=guest
+      - Messaging__RabbitMq__Password=guest
+    depends_on:
+      rabbitmq:
+        condition: service_healthy

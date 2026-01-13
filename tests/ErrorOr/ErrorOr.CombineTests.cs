@@ -1,5 +1,5 @@
-using ErrorOr;
 using FluentAssertions;
+using VsaResults;
 
 namespace Tests;
 
@@ -197,5 +197,126 @@ public class CombineTests
         // Assert
         result.IsError.Should().BeFalse();
         result.Value.Should().BeEquivalentTo(new[] { 1, 2, 3 });
+    }
+
+    [Fact]
+    public void Combine_SixResults_WhenAllSucceed_ShouldReturnTuple()
+    {
+        // Arrange
+        ErrorOr<int> first = 1;
+        ErrorOr<string> second = "two";
+        ErrorOr<double> third = 3.0;
+        ErrorOr<bool> fourth = true;
+        ErrorOr<char> fifth = 'e';
+        ErrorOr<long> sixth = 6L;
+
+        // Act
+        var result = ErrorOrCombine.Combine(first, second, third, fourth, fifth, sixth);
+
+        // Assert
+        result.IsError.Should().BeFalse();
+        result.Value.Should().Be((1, "two", 3.0, true, 'e', 6L));
+    }
+
+    [Fact]
+    public void Combine_SixResults_WhenSomeFail_ShouldReturnAllErrors()
+    {
+        // Arrange
+        ErrorOr<int> first = Error.NotFound();
+        ErrorOr<string> second = "two";
+        ErrorOr<double> third = Error.Validation();
+        ErrorOr<bool> fourth = true;
+        ErrorOr<char> fifth = Error.Conflict();
+        ErrorOr<long> sixth = 6L;
+
+        // Act
+        var result = ErrorOrCombine.Combine(first, second, third, fourth, fifth, sixth);
+
+        // Assert
+        result.IsError.Should().BeTrue();
+        result.Errors.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public void Combine_SevenResults_WhenAllSucceed_ShouldReturnTuple()
+    {
+        // Arrange
+        ErrorOr<int> first = 1;
+        ErrorOr<string> second = "two";
+        ErrorOr<double> third = 3.0;
+        ErrorOr<bool> fourth = true;
+        ErrorOr<char> fifth = 'e';
+        ErrorOr<long> sixth = 6L;
+        ErrorOr<float> seventh = 7.0f;
+
+        // Act
+        var result = ErrorOrCombine.Combine(first, second, third, fourth, fifth, sixth, seventh);
+
+        // Assert
+        result.IsError.Should().BeFalse();
+        result.Value.Should().Be((1, "two", 3.0, true, 'e', 6L, 7.0f));
+    }
+
+    [Fact]
+    public void Combine_SevenResults_WhenSomeFail_ShouldReturnAllErrors()
+    {
+        // Arrange
+        ErrorOr<int> first = 1;
+        ErrorOr<string> second = Error.Validation(code: "V1");
+        ErrorOr<double> third = 3.0;
+        ErrorOr<bool> fourth = Error.Validation(code: "V2");
+        ErrorOr<char> fifth = 'e';
+        ErrorOr<long> sixth = 6L;
+        ErrorOr<float> seventh = Error.Validation(code: "V3");
+
+        // Act
+        var result = ErrorOrCombine.Combine(first, second, third, fourth, fifth, sixth, seventh);
+
+        // Assert
+        result.IsError.Should().BeTrue();
+        result.Errors.Should().HaveCount(3);
+        result.Errors.Select(e => e.Code).Should().BeEquivalentTo(new[] { "V1", "V2", "V3" });
+    }
+
+    [Fact]
+    public void Combine_EightResults_WhenAllSucceed_ShouldReturnTuple()
+    {
+        // Arrange
+        ErrorOr<int> first = 1;
+        ErrorOr<string> second = "two";
+        ErrorOr<double> third = 3.0;
+        ErrorOr<bool> fourth = true;
+        ErrorOr<char> fifth = 'e';
+        ErrorOr<long> sixth = 6L;
+        ErrorOr<float> seventh = 7.0f;
+        ErrorOr<byte> eighth = 8;
+
+        // Act
+        var result = ErrorOrCombine.Combine(first, second, third, fourth, fifth, sixth, seventh, eighth);
+
+        // Assert
+        result.IsError.Should().BeFalse();
+        result.Value.Should().Be((1, "two", 3.0, true, 'e', 6L, 7.0f, (byte)8));
+    }
+
+    [Fact]
+    public void Combine_EightResults_WhenAllFail_ShouldReturnAllErrors()
+    {
+        // Arrange
+        ErrorOr<int> first = Error.Failure(code: "E1");
+        ErrorOr<string> second = Error.Failure(code: "E2");
+        ErrorOr<double> third = Error.Failure(code: "E3");
+        ErrorOr<bool> fourth = Error.Failure(code: "E4");
+        ErrorOr<char> fifth = Error.Failure(code: "E5");
+        ErrorOr<long> sixth = Error.Failure(code: "E6");
+        ErrorOr<float> seventh = Error.Failure(code: "E7");
+        ErrorOr<byte> eighth = Error.Failure(code: "E8");
+
+        // Act
+        var result = ErrorOrCombine.Combine(first, second, third, fourth, fifth, sixth, seventh, eighth);
+
+        // Assert
+        result.IsError.Should().BeTrue();
+        result.Errors.Should().HaveCount(8);
     }
 }

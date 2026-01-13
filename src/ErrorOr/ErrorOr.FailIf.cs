@@ -1,4 +1,4 @@
-namespace ErrorOr;
+namespace VsaResults;
 
 public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
 {
@@ -9,15 +9,8 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
     /// <param name="onValue">The function to execute if the state is value.</param>
     /// <param name="error">The <see cref="Error"/> to return if the given <paramref name="onValue"/> function returned true.</param>
     /// <returns>The given <paramref name="error"/> if <paramref name="onValue"/> returns true; otherwise, the original <see cref="ErrorOr"/> instance.</returns>
-    public ErrorOr<TValue> FailIf(Func<TValue, bool> onValue, Error error)
-    {
-        if (IsError)
-        {
-            return this;
-        }
-
-        return onValue(Value) ? error : this;
-    }
+    public ErrorOr<TValue> FailIf(Func<TValue, bool> onValue, Error error) =>
+        IsError ? this : onValue(Value) ? error : this;
 
     /// <summary>
     /// If the state is value, the provided function <paramref name="onValue"/> is invoked.
@@ -26,15 +19,8 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
     /// <param name="onValue">The function to execute if the state is value.</param>
     /// <param name="errorBuilder">The error builder function to execute and return if the given <paramref name="onValue"/> function returned true.</param>
     /// <returns>The given <paramref name="errorBuilder"/> functions return value if <paramref name="onValue"/> returns true; otherwise, the original <see cref="ErrorOr"/> instance.</returns>
-    public ErrorOr<TValue> FailIf(Func<TValue, bool> onValue, Func<TValue, Error> errorBuilder)
-    {
-        if (IsError)
-        {
-            return this;
-        }
-
-        return onValue(Value) ? errorBuilder(Value) : this;
-    }
+    public ErrorOr<TValue> FailIf(Func<TValue, bool> onValue, Func<TValue, Error> errorBuilder) =>
+        IsError ? this : onValue(Value) ? errorBuilder(Value) : this;
 
     /// <summary>
     /// If the state is value, the provided function <paramref name="onValue"/> is invoked asynchronously.
@@ -43,14 +29,17 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
     /// <param name="onValue">The function to execute if the statement is value.</param>
     /// <param name="error">The <see cref="Error"/> to return if the given <paramref name="onValue"/> function returned true.</param>
     /// <returns>The given <paramref name="error"/> if <paramref name="onValue"/> returns true; otherwise, the original <see cref="ErrorOr"/> instance.</returns>
-    public async Task<ErrorOr<TValue>> FailIfAsync(Func<TValue, Task<bool>> onValue, Error error)
+    public Task<ErrorOr<TValue>> FailIfAsync(Func<TValue, Task<bool>> onValue, Error error)
     {
         if (IsError)
         {
-            return this;
+            return Task.FromResult(this);
         }
 
-        return await onValue(Value).ConfigureAwait(false) ? error : this;
+        var self = this;
+        return onValue(Value).ContinueWith(
+            t => t.GetAwaiter().GetResult() ? (ErrorOr<TValue>)error : self,
+            TaskContinuationOptions.ExecuteSynchronously);
     }
 
     /// <summary>
@@ -67,6 +56,8 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
             return this;
         }
 
-        return await onValue(Value).ConfigureAwait(false) ? await errorBuilder(Value).ConfigureAwait(false) : this;
+        return await onValue(Value).ConfigureAwait(false)
+            ? await errorBuilder(Value).ConfigureAwait(false)
+            : this;
     }
 }

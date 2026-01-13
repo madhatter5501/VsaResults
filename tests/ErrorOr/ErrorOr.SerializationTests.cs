@@ -1,7 +1,7 @@
 using System.Text.Json;
-using ErrorOr;
-using ErrorOr.Serialization;
 using FluentAssertions;
+using VsaResults;
+using VsaResults.Serialization;
 
 namespace Tests;
 

@@ -1,130 +1,98 @@
-namespace ErrorOr;
+namespace VsaResults;
 
 public static partial class ErrorOrExtensions
 {
     /// <summary>
     /// Projects the value using a selector function. This is an alias for ThenAsync.
     /// </summary>
-    public static async Task<ErrorOr<TNextValue>> Select<TValue, TNextValue>(
+    public static Task<ErrorOr<TNextValue>> Select<TValue, TNextValue>(
         this Task<ErrorOr<TValue>> errorOrTask,
-        Func<TValue, TNextValue> selector)
-    {
-        var errorOr = await errorOrTask.ConfigureAwait(false);
-        return errorOr.Select(selector);
-    }
+        Func<TValue, TNextValue> selector) =>
+        errorOrTask.ThenSync(errorOr => errorOr.Select(selector));
 
     /// <summary>
     /// Projects the value using an async selector function.
     /// </summary>
-    public static async Task<ErrorOr<TNextValue>> SelectAsync<TValue, TNextValue>(
+    public static Task<ErrorOr<TNextValue>> SelectAsync<TValue, TNextValue>(
         this ErrorOr<TValue> errorOr,
-        Func<TValue, Task<TNextValue>> selector)
-    {
-        if (errorOr.IsError)
-        {
-            return errorOr.Errors;
-        }
-
-        return await selector(errorOr.Value).ConfigureAwait(false);
-    }
+        Func<TValue, Task<TNextValue>> selector) =>
+        errorOr.IsError
+            ? Task.FromResult<ErrorOr<TNextValue>>(errorOr.Errors)
+            : selector(errorOr.Value).ContinueWith(
+                t => (ErrorOr<TNextValue>)t.GetAwaiter().GetResult(),
+                TaskContinuationOptions.ExecuteSynchronously);
 
     /// <summary>
     /// Projects the value using an async selector function on a Task-wrapped ErrorOr.
     /// </summary>
-    public static async Task<ErrorOr<TNextValue>> SelectAsync<TValue, TNextValue>(
+    public static Task<ErrorOr<TNextValue>> SelectAsync<TValue, TNextValue>(
         this Task<ErrorOr<TValue>> errorOrTask,
-        Func<TValue, Task<TNextValue>> selector)
-    {
-        var errorOr = await errorOrTask.ConfigureAwait(false);
-        return await errorOr.SelectAsync(selector).ConfigureAwait(false);
-    }
+        Func<TValue, Task<TNextValue>> selector) =>
+        errorOrTask.ThenAsync(errorOr => errorOr.SelectAsync(selector));
 
     /// <summary>
     /// Projects the value using a selector function that returns an ErrorOr. This is an alias for ThenAsync.
     /// </summary>
-    public static async Task<ErrorOr<TNextValue>> SelectMany<TValue, TNextValue>(
+    public static Task<ErrorOr<TNextValue>> SelectMany<TValue, TNextValue>(
         this Task<ErrorOr<TValue>> errorOrTask,
-        Func<TValue, ErrorOr<TNextValue>> selector)
-    {
-        var errorOr = await errorOrTask.ConfigureAwait(false);
-        return errorOr.SelectMany(selector);
-    }
+        Func<TValue, ErrorOr<TNextValue>> selector) =>
+        errorOrTask.ThenSync(errorOr => errorOr.SelectMany(selector));
 
     /// <summary>
     /// Projects the value using an async selector function that returns an ErrorOr.
     /// </summary>
-    public static async Task<ErrorOr<TNextValue>> SelectManyAsync<TValue, TNextValue>(
+    public static Task<ErrorOr<TNextValue>> SelectManyAsync<TValue, TNextValue>(
         this ErrorOr<TValue> errorOr,
-        Func<TValue, Task<ErrorOr<TNextValue>>> selector)
-    {
-        if (errorOr.IsError)
-        {
-            return errorOr.Errors;
-        }
-
-        return await selector(errorOr.Value).ConfigureAwait(false);
-    }
+        Func<TValue, Task<ErrorOr<TNextValue>>> selector) =>
+        errorOr.IsError
+            ? Task.FromResult<ErrorOr<TNextValue>>(errorOr.Errors)
+            : selector(errorOr.Value);
 
     /// <summary>
     /// Projects the value using an async selector function that returns an ErrorOr on a Task-wrapped ErrorOr.
     /// </summary>
-    public static async Task<ErrorOr<TNextValue>> SelectManyAsync<TValue, TNextValue>(
+    public static Task<ErrorOr<TNextValue>> SelectManyAsync<TValue, TNextValue>(
         this Task<ErrorOr<TValue>> errorOrTask,
-        Func<TValue, Task<ErrorOr<TNextValue>>> selector)
-    {
-        var errorOr = await errorOrTask.ConfigureAwait(false);
-        return await errorOr.SelectManyAsync(selector).ConfigureAwait(false);
-    }
+        Func<TValue, Task<ErrorOr<TNextValue>>> selector) =>
+        errorOrTask.ThenAsync(errorOr => errorOr.SelectManyAsync(selector));
 
     /// <summary>
     /// Filters the value based on a predicate on a Task-wrapped ErrorOr.
     /// </summary>
-    public static async Task<ErrorOr<TValue>> Where<TValue>(
+    public static Task<ErrorOr<TValue>> Where<TValue>(
         this Task<ErrorOr<TValue>> errorOrTask,
         Func<TValue, bool> predicate,
-        Error error)
-    {
-        var errorOr = await errorOrTask.ConfigureAwait(false);
-        return errorOr.Where(predicate, error);
-    }
+        Error error) =>
+        errorOrTask.ThenSync(errorOr => errorOr.Where(predicate, error));
 
     /// <summary>
     /// Filters the value based on a predicate on a Task-wrapped ErrorOr.
     /// </summary>
-    public static async Task<ErrorOr<TValue>> Where<TValue>(
+    public static Task<ErrorOr<TValue>> Where<TValue>(
         this Task<ErrorOr<TValue>> errorOrTask,
         Func<TValue, bool> predicate,
-        Func<TValue, Error> errorFactory)
-    {
-        var errorOr = await errorOrTask.ConfigureAwait(false);
-        return errorOr.Where(predicate, errorFactory);
-    }
+        Func<TValue, Error> errorFactory) =>
+        errorOrTask.ThenSync(errorOr => errorOr.Where(predicate, errorFactory));
 
     /// <summary>
     /// Filters the value based on an async predicate.
     /// </summary>
-    public static async Task<ErrorOr<TValue>> WhereAsync<TValue>(
+    public static Task<ErrorOr<TValue>> WhereAsync<TValue>(
         this ErrorOr<TValue> errorOr,
         Func<TValue, Task<bool>> predicate,
-        Error error)
-    {
-        if (errorOr.IsError)
-        {
-            return errorOr.Errors;
-        }
-
-        return await predicate(errorOr.Value).ConfigureAwait(false) ? errorOr : error;
-    }
+        Error error) =>
+        errorOr.IsError
+            ? Task.FromResult<ErrorOr<TValue>>(errorOr.Errors)
+            : predicate(errorOr.Value).ContinueWith(
+                t => t.GetAwaiter().GetResult() ? errorOr : (ErrorOr<TValue>)error,
+                TaskContinuationOptions.ExecuteSynchronously);
 
     /// <summary>
     /// Filters the value based on an async predicate on a Task-wrapped ErrorOr.
     /// </summary>
-    public static async Task<ErrorOr<TValue>> WhereAsync<TValue>(
+    public static Task<ErrorOr<TValue>> WhereAsync<TValue>(
         this Task<ErrorOr<TValue>> errorOrTask,
         Func<TValue, Task<bool>> predicate,
-        Error error)
-    {
-        var errorOr = await errorOrTask.ConfigureAwait(false);
-        return await errorOr.WhereAsync(predicate, error).ConfigureAwait(false);
-    }
+        Error error) =>
+        errorOrTask.ThenAsync(errorOr => errorOr.WhereAsync(predicate, error));
 }

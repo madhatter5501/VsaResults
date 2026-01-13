@@ -1,4 +1,4 @@
-namespace ErrorOr;
+namespace VsaResults;
 
 /// <summary>
 /// Represents an error.
@@ -35,16 +35,30 @@ public readonly record struct Error
     public int NumericType { get; }
 
     /// <summary>
-    /// Gets the metadata.
+    /// Gets the metadata. This is a read-only view of the metadata dictionary.
     /// </summary>
-    public Dictionary<string, object>? Metadata { get; }
+    /// <remarks>
+    /// <para>
+    /// <strong>Important:</strong> Metadata values should be immutable (strings, numbers, booleans, etc.).
+    /// If you store mutable objects (lists, dictionaries), modifying them after Error creation will
+    /// change the Error's hash code, which can cause issues when using Errors in collections like
+    /// HashSet or as Dictionary keys.
+    /// </para>
+    /// <para>
+    /// For safe usage, prefer immutable types like <c>string</c>, <c>int</c>, <c>bool</c>,
+    /// <c>DateTimeOffset</c>, or use <c>ImmutableArray&lt;T&gt;</c> / <c>ImmutableDictionary&lt;K,V&gt;</c>
+    /// for collections.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyDictionary<string, object>? Metadata { get; }
 
     /// <summary>
     /// Creates an <see cref="Error"/> of type <see cref="ErrorType.Failure"/> from a code and description.
     /// </summary>
     /// <param name="code">The unique error code.</param>
     /// <param name="description">The error description.</param>
-    /// <param name="metadata">A dictionary which provides optional space for information.</param>
+    /// <param name="metadata">A dictionary which provides optional space for information.
+    /// Values should be immutable types to ensure hash code stability (see <see cref="Metadata"/> remarks).</param>
     public static Error Failure(
         string code = "General.Failure",
         string description = "A failure has occurred.",
@@ -210,6 +224,18 @@ public readonly record struct Error
         Dictionary<string, object>? metadata = null) =>
             new(code, description, (ErrorType)type, metadata);
 
+    /// <summary>
+    /// Returns a string representation of this error for debugging purposes.
+    /// </summary>
+    public override string ToString()
+    {
+        var description = Description.Length > 50
+            ? $"{Description[..47]}..."
+            : Description;
+
+        return $"Error {{ Code = {Code}, Type = {Type}, Description = {description} }}";
+    }
+
     public bool Equals(Error other)
     {
         if (Type != other.Type ||
@@ -251,7 +277,7 @@ public readonly record struct Error
         return hashCode.ToHashCode();
     }
 
-    private static bool CompareMetadata(Dictionary<string, object> metadata, Dictionary<string, object> otherMetadata)
+    private static bool CompareMetadata(IReadOnlyDictionary<string, object> metadata, IReadOnlyDictionary<string, object> otherMetadata)
     {
         if (ReferenceEquals(metadata, otherMetadata))
         {

@@ -1,30 +1,26 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ErrorOr.Serialization;
+namespace VsaResults.Serialization;
 
 /// <summary>
 /// Factory for creating <see cref="ErrorOrJsonConverter{TValue}"/> instances.
+/// Converters are cached for performance.
 /// </summary>
 public class ErrorOrJsonConverterFactory : JsonConverterFactory
 {
+    private static readonly ConcurrentDictionary<Type, JsonConverter> ConverterCache = new();
+
     /// <inheritdoc/>
-    public override bool CanConvert(Type typeToConvert)
-    {
-        if (!typeToConvert.IsGenericType)
+    public override bool CanConvert(Type typeToConvert) =>
+        typeToConvert.IsGenericType && typeToConvert.GetGenericTypeDefinition() == typeof(ErrorOr<>);
+
+    /// <inheritdoc/>
+    public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
+        ConverterCache.GetOrAdd(typeToConvert, static type =>
         {
-            return false;
-        }
-
-        return typeToConvert.GetGenericTypeDefinition() == typeof(ErrorOr<>);
-    }
-
-    /// <inheritdoc/>
-    public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-    {
-        var valueType = typeToConvert.GetGenericArguments()[0];
-        var converterType = typeof(ErrorOrJsonConverter<>).MakeGenericType(valueType);
-
-        return (JsonConverter?)Activator.CreateInstance(converterType);
-    }
+            var converterType = typeof(ErrorOrJsonConverter<>).MakeGenericType(type.GetGenericArguments()[0]);
+            return (JsonConverter)Activator.CreateInstance(converterType)!;
+        });
 }

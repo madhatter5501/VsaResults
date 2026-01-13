@@ -1,4 +1,4 @@
-namespace ErrorOr;
+namespace VsaResults;
 
 public readonly partial record struct ErrorOr<TValue>
 {

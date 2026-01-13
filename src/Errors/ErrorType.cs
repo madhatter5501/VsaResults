@@ -1,4 +1,4 @@
-namespace ErrorOr;
+namespace VsaResults;
 
 /// <summary>
 /// Error types.

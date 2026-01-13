@@ -1,0 +1,41 @@
+name: Feature Request
+description: Suggest an idea or enhancement for ErrorOr
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing your idea! Please fill out the details below.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve?
+      placeholder: Describe the pain point or limitation.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What would you like to see added or changed?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any alternatives you've considered.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Core ErrorOr
+        - AspNetCore
+        - Features
+        - Serialization
+        - Other
+    validations:
+      required: true

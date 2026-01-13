@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Disable StyleCop for sample project - this is meant to be readable, not production-strict -->
+    <NoWarn>$(NoWarn);SA1402;SA1201;SA1204;SA1649;SA1629;SA1210;AD0001</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\VsaResults.csproj" />
+    <ProjectReference Include="..\..\src\VsaResults.Messaging\VsaResults.Messaging.csproj" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+</Project>

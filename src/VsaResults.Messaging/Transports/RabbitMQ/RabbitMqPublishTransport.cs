@@ -1,0 +1,170 @@
+using Microsoft.Extensions.Logging;
+using RabbitMQ.Client;
+
+namespace VsaResults.Messaging;
+
+/// <summary>
+/// RabbitMQ publish transport for pub/sub messaging.
+/// </summary>
+public class RabbitMqPublishTransport : IPublishTransport
+{
+    private readonly IChannel _channel;
+    private readonly RabbitMqTransportOptions _options;
+    private readonly IMessageSerializer _serializer;
+    private readonly ILogger? _logger;
+    private readonly HashSet<string> _declaredExchanges = new();
+    private readonly SemaphoreSlim _declareLock = new(1, 1);
+
+    internal RabbitMqPublishTransport(
+        IChannel channel,
+        RabbitMqTransportOptions options,
+        IMessageSerializer serializer,
+        ILogger? logger)
+    {
+        _channel = channel;
+        _options = options;
+        _serializer = serializer;
+        _logger = logger;
+    }
+
+    /// <inheritdoc />
+    public async Task<ErrorOr<Unit>> PublishAsync<TMessage>(
+        MessageEnvelope envelope,
+        CancellationToken ct = default)
+        where TMessage : class, IEvent
+    {
+        try
+        {
+            var exchangeName = GetExchangeName<TMessage>();
+
+            // Declare the exchange if we haven't already
+            await EnsureExchangeDeclaredAsync(exchangeName, ct);
+
+            // Create message properties
+            var properties = new BasicProperties
+            {
+                MessageId = envelope.MessageId.ToString(),
+                CorrelationId = envelope.CorrelationId.ToString(),
+                ContentType = envelope.ContentType ?? "application/json",
+                DeliveryMode = _options.PersistentMessages ? DeliveryModes.Persistent : DeliveryModes.Transient,
+                Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
+                Type = string.Join(";", envelope.MessageTypes),
+                Headers = ConvertHeaders(envelope)
+            };
+
+            // Publish to the exchange (fanout, so routing key is empty)
+            await _channel.BasicPublishAsync(
+                exchange: exchangeName,
+                routingKey: string.Empty,
+                mandatory: false,
+                basicProperties: properties,
+                body: envelope.Body,
+                cancellationToken: ct);
+
+            _logger?.LogDebug(
+                "Published {MessageType} to exchange {Exchange}",
+                typeof(TMessage).Name,
+                exchangeName);
+
+            return Unit.Value;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to publish {MessageType}", typeof(TMessage).Name);
+            return MessagingErrors.TransportError($"Failed to publish message: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Ensures the exchange is declared.
+    /// </summary>
+    private async Task EnsureExchangeDeclaredAsync(string exchangeName, CancellationToken ct)
+    {
+        if (_declaredExchanges.Contains(exchangeName))
+        {
+            return;
+        }
+
+        await _declareLock.WaitAsync(ct);
+        try
+        {
+            if (_declaredExchanges.Contains(exchangeName))
+            {
+                return;
+            }
+
+            await _channel.ExchangeDeclareAsync(
+                exchange: exchangeName,
+                type: ExchangeType.Fanout,
+                durable: _options.Durable,
+                autoDelete: false,
+                arguments: null,
+                cancellationToken: ct);
+
+            _declaredExchanges.Add(exchangeName);
+
+            _logger?.LogDebug("Declared exchange {Exchange}", exchangeName);
+        }
+        finally
+        {
+            _declareLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Converts envelope headers to RabbitMQ-compatible dictionary.
+    /// </summary>
+    private static Dictionary<string, object?> ConvertHeaders(MessageEnvelope envelope)
+    {
+        var headers = new Dictionary<string, object?>
+        {
+            ["vsa-message-id"] = envelope.MessageId.ToString(),
+            ["vsa-correlation-id"] = envelope.CorrelationId.ToString(),
+            ["vsa-sent-time"] = envelope.SentTime.ToString("O"),
+            ["vsa-source-address"] = envelope.SourceAddress?.ToString(),
+            ["vsa-destination-address"] = envelope.DestinationAddress?.ToString()
+        };
+
+        if (envelope.InitiatorId is not null)
+        {
+            headers["vsa-initiator-id"] = envelope.InitiatorId.ToString();
+        }
+
+        if (envelope.ConversationId is not null)
+        {
+            headers["vsa-conversation-id"] = envelope.ConversationId.ToString();
+        }
+
+        // Add custom headers
+        foreach (var (key, value) in envelope.Headers)
+        {
+            headers[$"x-{key}"] = value;
+        }
+
+        // Add host info
+        if (envelope.Host is not null)
+        {
+            headers["vsa-host-machine"] = envelope.Host.MachineName;
+            headers["vsa-host-process"] = envelope.Host.ProcessName;
+            headers["vsa-host-process-id"] = envelope.Host.ProcessId.ToString();
+        }
+
+        return headers;
+    }
+
+    /// <summary>
+    /// Gets the exchange name for a message type.
+    /// Uses the URN format from MessageTypeResolver for consistency with consumer bindings.
+    /// </summary>
+    protected virtual string GetExchangeName<TMessage>()
+        where TMessage : class, IEvent
+    {
+        // Use the URN format that MessageTypeResolver produces
+        // urn:message:Namespace:TypeName becomes exchange name with colons replaced
+        var typeResolver = new MessageTypeResolver();
+        var primaryType = typeResolver.GetPrimaryIdentifier<TMessage>();
+
+        // Replace colons and slashes to make a valid RabbitMQ exchange name
+        return primaryType.Replace(':', '_').Replace('/', '_');
+    }
+}

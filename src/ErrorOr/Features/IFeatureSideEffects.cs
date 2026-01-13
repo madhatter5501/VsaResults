@@ -1,0 +1,17 @@
+namespace VsaResults;
+
+/// <summary>
+/// Executes side effects after successful mutation.
+/// Examples: sending notifications, publishing events, updating caches.
+/// </summary>
+/// <typeparam name="TRequest">The type of the request.</typeparam>
+public interface IFeatureSideEffects<TRequest>
+{
+    /// <summary>
+    /// Executes side effects.
+    /// </summary>
+    /// <param name="context">The feature context with request and loaded entities.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Unit on success or side effect errors.</returns>
+    Task<ErrorOr<Unit>> ExecuteAsync(FeatureContext<TRequest> context, CancellationToken ct = default);
+}

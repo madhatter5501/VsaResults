@@ -1,4 +1,4 @@
-namespace ErrorOr;
+namespace VsaResults;
 
 public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
 {
@@ -7,148 +7,88 @@ public readonly partial record struct ErrorOr<TValue> : IErrorOr<TValue>
     /// </summary>
     /// <param name="onError">The function to execute if the state is error.</param>
     /// <returns>The result from calling <paramref name="onError"/> if state is error; otherwise the original <see cref="Value"/>.</returns>
-    public ErrorOr<TValue> Else(Func<List<Error>, Error> onError)
-    {
-        if (!IsError)
-        {
-            return Value;
-        }
-
-        return onError(Errors);
-    }
+    public ErrorOr<TValue> Else(Func<List<Error>, Error> onError) =>
+        IsError ? onError(Errors) : Value;
 
     /// <summary>
     /// If the state is error, the provided function <paramref name="onError"/> is executed and its result is returned.
     /// </summary>
     /// <param name="onError">The function to execute if the state is error.</param>
     /// <returns>The result from calling <paramref name="onError"/> if state is error; otherwise the original <see cref="Value"/>.</returns>
-    public ErrorOr<TValue> Else(Func<List<Error>, List<Error>> onError)
-    {
-        if (!IsError)
-        {
-            return Value;
-        }
-
-        return onError(Errors);
-    }
+    public ErrorOr<TValue> Else(Func<List<Error>, List<Error>> onError) =>
+        IsError ? onError(Errors) : Value;
 
     /// <summary>
     /// If the state is error, the provided <paramref name="error"/> is returned.
     /// </summary>
     /// <param name="error">The error to return.</param>
     /// <returns>The given <paramref name="error"/>.</returns>
-    public ErrorOr<TValue> Else(Error error)
-    {
-        if (!IsError)
-        {
-            return Value;
-        }
-
-        return error;
-    }
+    public ErrorOr<TValue> Else(Error error) =>
+        IsError ? error : Value;
 
     /// <summary>
     /// If the state is error, the provided function <paramref name="onError"/> is executed and its result is returned.
     /// </summary>
     /// <param name="onError">The function to execute if the state is error.</param>
     /// <returns>The result from calling <paramref name="onError"/> if state is error; otherwise the original <see cref="Value"/>.</returns>
-    public ErrorOr<TValue> Else(Func<List<Error>, TValue> onError)
-    {
-        if (!IsError)
-        {
-            return Value;
-        }
-
-        return onError(Errors);
-    }
+    public ErrorOr<TValue> Else(Func<List<Error>, TValue> onError) =>
+        IsError ? onError(Errors) : Value;
 
     /// <summary>
     /// If the state is error, the provided function <paramref name="onError"/> is executed and its result is returned.
     /// </summary>
     /// <param name="onError">The value to return if the state is error.</param>
     /// <returns>The result from calling <paramref name="onError"/> if state is error; otherwise the original <see cref="Value"/>.</returns>
-    public ErrorOr<TValue> Else(TValue onError)
-    {
-        if (!IsError)
-        {
-            return Value;
-        }
-
-        return onError;
-    }
+    public ErrorOr<TValue> Else(TValue onError) =>
+        IsError ? onError : Value;
 
     /// <summary>
     /// If the state is error, the provided function <paramref name="onError"/> is executed asynchronously and its result is returned.
     /// </summary>
     /// <param name="onError">The function to execute if the state is error.</param>
     /// <returns>The result from calling <paramref name="onError"/> if state is error; otherwise the original <see cref="Value"/>.</returns>
-    public async Task<ErrorOr<TValue>> ElseAsync(Func<List<Error>, Task<TValue>> onError)
-    {
-        if (!IsError)
-        {
-            return Value;
-        }
-
-        return await onError(Errors).ConfigureAwait(false);
-    }
+    public Task<ErrorOr<TValue>> ElseAsync(Func<List<Error>, Task<TValue>> onError) =>
+        IsError
+            ? onError(Errors).ContinueWith(t => (ErrorOr<TValue>)t.GetAwaiter().GetResult(), TaskContinuationOptions.ExecuteSynchronously)
+            : Task.FromResult<ErrorOr<TValue>>(Value);
 
     /// <summary>
     /// If the state is error, the provided function <paramref name="onError"/> is executed asynchronously and its result is returned.
     /// </summary>
     /// <param name="onError">The function to execute if the state is error.</param>
     /// <returns>The result from calling <paramref name="onError"/> if state is error; otherwise the original <see cref="Value"/>.</returns>
-    public async Task<ErrorOr<TValue>> ElseAsync(Func<List<Error>, Task<Error>> onError)
-    {
-        if (!IsError)
-        {
-            return Value;
-        }
-
-        return await onError(Errors).ConfigureAwait(false);
-    }
+    public Task<ErrorOr<TValue>> ElseAsync(Func<List<Error>, Task<Error>> onError) =>
+        IsError
+            ? onError(Errors).ContinueWith(t => (ErrorOr<TValue>)t.GetAwaiter().GetResult(), TaskContinuationOptions.ExecuteSynchronously)
+            : Task.FromResult<ErrorOr<TValue>>(Value);
 
     /// <summary>
     /// If the state is error, the provided function <paramref name="onError"/> is executed asynchronously and its result is returned.
     /// </summary>
     /// <param name="onError">The function to execute if the state is error.</param>
     /// <returns>The result from calling <paramref name="onError"/> if state is error; otherwise the original <see cref="Value"/>.</returns>
-    public async Task<ErrorOr<TValue>> ElseAsync(Func<List<Error>, Task<List<Error>>> onError)
-    {
-        if (!IsError)
-        {
-            return Value;
-        }
-
-        return await onError(Errors).ConfigureAwait(false);
-    }
+    public Task<ErrorOr<TValue>> ElseAsync(Func<List<Error>, Task<List<Error>>> onError) =>
+        IsError
+            ? onError(Errors).ContinueWith(t => (ErrorOr<TValue>)t.GetAwaiter().GetResult(), TaskContinuationOptions.ExecuteSynchronously)
+            : Task.FromResult<ErrorOr<TValue>>(Value);
 
     /// <summary>
     /// If the state is error, the provided <paramref name="error"/> is awaited and returned.
     /// </summary>
     /// <param name="error">The error to return if the state is error.</param>
     /// <returns>The result from awaiting the given <paramref name="error"/>.</returns>
-    public async Task<ErrorOr<TValue>> ElseAsync(Task<Error> error)
-    {
-        if (!IsError)
-        {
-            return Value;
-        }
-
-        return await error.ConfigureAwait(false);
-    }
+    public Task<ErrorOr<TValue>> ElseAsync(Task<Error> error) =>
+        IsError
+            ? error.ContinueWith(t => (ErrorOr<TValue>)t.GetAwaiter().GetResult(), TaskContinuationOptions.ExecuteSynchronously)
+            : Task.FromResult<ErrorOr<TValue>>(Value);
 
     /// <summary>
     /// If the state is error, the provided function <paramref name="onError"/> is executed asynchronously and its result is returned.
     /// </summary>
     /// <param name="onError">The function to execute if the state is error.</param>
     /// <returns>The result from calling <paramref name="onError"/> if state is error; otherwise the original <see cref="Value"/>.</returns>
-    public async Task<ErrorOr<TValue>> ElseAsync(Task<TValue> onError)
-    {
-        if (!IsError)
-        {
-            return Value;
-        }
-
-        return await onError.ConfigureAwait(false);
-    }
+    public Task<ErrorOr<TValue>> ElseAsync(Task<TValue> onError) =>
+        IsError
+            ? onError.ContinueWith(t => (ErrorOr<TValue>)t.GetAwaiter().GetResult(), TaskContinuationOptions.ExecuteSynchronously)
+            : Task.FromResult<ErrorOr<TValue>>(Value);
 }

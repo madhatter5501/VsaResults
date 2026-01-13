@@ -1,4 +1,4 @@
-namespace ErrorOr;
+namespace VsaResults;
 
 public static partial class ErrorOrExtensions
 {
@@ -11,15 +11,11 @@ public static partial class ErrorOrExtensions
     /// <param name="error">The <see cref="Error"/> to return if the given <paramref name="onValue"/> function returned true..</param>
     /// <typeparam name="TValue">The type of the underlying value in the <paramref name="errorOr"/>.</typeparam>
     /// <returns>The given <paramref name="error"/> if <paramref name="onValue"/> returns true; otherwise, the original <see cref="ErrorOr"/> instance.</returns>
-    public static async Task<ErrorOr<TValue>> FailIf<TValue>(
+    public static Task<ErrorOr<TValue>> FailIf<TValue>(
         this Task<ErrorOr<TValue>> errorOr,
         Func<TValue, bool> onValue,
-        Error error)
-    {
-        var result = await errorOr.ConfigureAwait(false);
-
-        return result.FailIf(onValue, error);
-    }
+        Error error) =>
+        errorOr.ThenSync(result => result.FailIf(onValue, error));
 
     /// <summary>
     /// If the state is value, the provided function <paramref name="onValue"/> is invoked asynchronously.
@@ -30,15 +26,11 @@ public static partial class ErrorOrExtensions
     /// <param name="errorBuilder">The error builder function to execute and return if the given <paramref name="onValue"/> function returned true.</param>
     /// <typeparam name="TValue">The type of the underlying value in the <paramref name="errorOr"/>.</typeparam>
     /// <returns>The given <paramref name="errorBuilder"/> functions return value if <paramref name="onValue"/> returns true; otherwise, the original <see cref="ErrorOr"/> instance.</returns>
-    public static async Task<ErrorOr<TValue>> FailIf<TValue>(
+    public static Task<ErrorOr<TValue>> FailIf<TValue>(
         this Task<ErrorOr<TValue>> errorOr,
         Func<TValue, bool> onValue,
-        Func<TValue, Error> errorBuilder)
-    {
-        var result = await errorOr.ConfigureAwait(false);
-
-        return result.FailIf(onValue, errorBuilder);
-    }
+        Func<TValue, Error> errorBuilder) =>
+        errorOr.ThenSync(result => result.FailIf(onValue, errorBuilder));
 
     /// <summary>
     /// If the state is value, the provided function <paramref name="onValue"/> is invoked asynchronously.
@@ -49,15 +41,11 @@ public static partial class ErrorOrExtensions
     /// <param name="error">The <see cref="Error"/> to return if the given <paramref name="onValue"/> function returned true.</param>
     /// <typeparam name="TValue">The type of the underlying value in the <paramref name="errorOr"/>.</typeparam>
     /// <returns>The given <paramref name="error"/> if <paramref name="onValue"/> returns true; otherwise, the original <see cref="ErrorOr"/> instance.</returns>
-    public static async Task<ErrorOr<TValue>> FailIfAsync<TValue>(
+    public static Task<ErrorOr<TValue>> FailIfAsync<TValue>(
         this Task<ErrorOr<TValue>> errorOr,
         Func<TValue, Task<bool>> onValue,
-        Error error)
-    {
-        var result = await errorOr.ConfigureAwait(false);
-
-        return await result.FailIfAsync(onValue, error);
-    }
+        Error error) =>
+        errorOr.ThenAsync(result => result.FailIfAsync(onValue, error));
 
     /// <summary>
     /// If the state is value, the provided function <paramref name="onValue"/> is invoked asynchronously.
@@ -68,13 +56,9 @@ public static partial class ErrorOrExtensions
     /// <param name="errorBuilder">The error builder function to execute and return if the given <paramref name="onValue"/> function returned true.</param>
     /// <typeparam name="TValue">The type of the underlying value in the <paramref name="errorOr"/>.</typeparam>
     /// <returns>The given <paramref name="errorBuilder"/> functions return value if <paramref name="onValue"/> returns true; otherwise, the original <see cref="ErrorOr"/> instance.</returns>
-    public static async Task<ErrorOr<TValue>> FailIfAsync<TValue>(
+    public static Task<ErrorOr<TValue>> FailIfAsync<TValue>(
         this Task<ErrorOr<TValue>> errorOr,
         Func<TValue, Task<bool>> onValue,
-        Func<TValue, Task<Error>> errorBuilder)
-    {
-        var result = await errorOr.ConfigureAwait(false);
-
-        return await result.FailIfAsync(onValue, errorBuilder);
-    }
+        Func<TValue, Task<Error>> errorBuilder) =>
+        errorOr.ThenAsync(result => result.FailIfAsync(onValue, errorBuilder));
 }

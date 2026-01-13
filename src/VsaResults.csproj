@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CS1574: XML comment cref attribute warnings suppressed during namespace rename - doc comments reference old 'ErrorOr' type name -->
+    <NoWarn>$(NoWarn);CS1574</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exclude the VsaResults.Messaging project from this project -->
+    <Compile Remove="VsaResults.Messaging/**/*.cs" />
+  </ItemGroup>
+  <PropertyGroup>
+    <PackageId>VsaResults</PackageId>
+    <RootNamespace>VsaResults</RootNamespace>
+    <AssemblyName>VsaResults</AssemblyName>
+    <Version>3.0.0</Version>
+    <Authors>Amichai Mantinband</Authors>
+    <PackageIcon>icon-square.png</PackageIcon>
+    <PackageTags>VSA;VerticalSliceArchitecture;Result;Results;Error;Handling;Pipeline;Features;WideEvents;Observability</PackageTags>
+    <Description>A fluent discriminated union for Vertical Slice Architecture with feature pipelines, wide events observability, and ASP.NET Core integration.</Description>
+    <PackageProjectUrl>https://github.com/amantinband/error-or</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <licenses>https://opensource.org/licenses/MIT</licenses>
+    <RepositoryUrl>https://github.com/amantinband/error-or</RepositoryUrl>
+    <PackageOutputPath>../artifacts/</PackageOutputPath>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../assets/icon-square.png" Pack="true" Visible="false" PackagePath="" />
+    <None Include="../README.md" Pack="true" PackagePath="" />
+    <None Include="Stylecop.json" />
+    <AdditionalFiles Include="Stylecop.json" />
+  </ItemGroup>
+</Project>

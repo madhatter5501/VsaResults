@@ -1,0 +1,41 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": ["src/VsaResults.csproj", "src/VsaResults.Messaging/VsaResults.Messaging.csproj"],
+          "src": ".."
+        }
+      ],
+      "dest": "api",
+      "properties": {
+        "TargetFramework": "net8.0"
+      }
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": ["api/**.yml", "api/index.md"]
+      },
+      {
+        "files": ["**.md", "**/toc.yml"],
+        "exclude": ["_site/**"]
+      }
+    ],
+    "resource": [
+      {
+        "files": ["images/**"]
+      }
+    ],
+    "output": "_site",
+    "template": ["default", "modern"],
+    "globalMetadata": {
+      "_appTitle": "VsaResults",
+      "_appName": "VsaResults",
+      "_appFooter": "VsaResults - A fluent discriminated union for C#",
+      "_enableSearch": true,
+      "_enableNewTab": true
+    }
+  }
+}
