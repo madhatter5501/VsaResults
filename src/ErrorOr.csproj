@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PackageId>ErrorOr</PackageId>
+    <Version>3.0.0</Version>
+    <Authors>Amichai Mantinband</Authors>
+    <PackageIcon>icon-square.png</PackageIcon>
+    <PackageTags>Result,Results,ErrorOr,Error,Handling</PackageTags>
+    <Description>A simple, fluent discriminated union of an error or a result.</Description>
+    <PackageProjectUrl>https://github.com/amantinband/error-or</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <licenses>https://opensource.org/licenses/MIT</licenses>
+    <RepositoryUrl>https://github.com/amantinband/error-or</RepositoryUrl>
+    <PackageOutputPath>../artifacts/</PackageOutputPath>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../assets/icon-square.png" Pack="true" Visible="false" PackagePath="" />
+    <None Include="../README.md" Pack="true" PackagePath="" />
+    <None Include="Stylecop.json" />
+    <AdditionalFiles Include="Stylecop.json" />
+  </ItemGroup>
+</Project>
