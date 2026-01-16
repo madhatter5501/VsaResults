@@ -228,34 +228,4 @@ public class RabbitMqTransportConfigurationTests
     }
 }
 
-/// <summary>
-/// Helper to skip tests when a condition is not met.
-/// </summary>
-public static class Skip
-{
-    public static void If(bool condition, string reason)
-    {
-        if (condition)
-        {
-            throw new SkipException(reason);
-        }
-    }
-
-    public static void IfNot(bool condition, string reason)
-    {
-        If(!condition, reason);
-    }
-}
-
-/// <summary>
-/// Exception thrown to skip a test.
-/// </summary>
-public class SkipException : Exception
-{
-    public SkipException(string reason) : base(reason) { }
-}
-
-/// <summary>
-/// Attribute for tests that can be skipped.
-/// </summary>
-public class SkippableFactAttribute : FactAttribute { }
+// Skip, SkipException, and SkippableFactAttribute are provided by Xunit.SkippableFact package
