@@ -54,7 +54,7 @@ jobs:
         run: dotnet test -c Release --no-restore --verbosity normal --collect:"XPlat Code Coverage" --settings tests/coverlet.runsettings
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' && matrix.dotnet == '10.0.x'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODE_COV_TOKEN }}
           fail_ci_if_error: true
