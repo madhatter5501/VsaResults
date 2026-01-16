@@ -1,14 +1,34 @@
 area/core:
-  - "src/ErrorOr/*.cs"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/ErrorOr/*.cs"
+
 area/aspnetcore:
-  - "src/ErrorOr/AspNetCore/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/ErrorOr/AspNetCore/**"
+
 area/features:
-  - "src/ErrorOr/Features/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/ErrorOr/Features/**"
+
 area/serialization:
-  - "src/ErrorOr/Serialization/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/ErrorOr/Serialization/**"
+
 documentation:
-  - "**/*.md"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+
 tests:
-  - "tests/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tests/**"
+
 ci:
-  - ".github/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
