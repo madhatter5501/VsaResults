@@ -1222,6 +1222,7 @@ If you have any questions, comments, or suggestions, please open an issue or cre
 
 # Credits 🙏
 
+- [Amichai Mantinband](https://github.com/amantinband) - Creator of the original [ErrorOr](https://github.com/amantinband/error-or) library that this project is based on
 - [OneOf](https://github.com/mcintyre321/OneOf/tree/master/OneOf) - An awesome library which provides F# style discriminated unions behavior for C#
 
 # License 🪪

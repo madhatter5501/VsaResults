@@ -30,6 +30,17 @@ dotnet test --filter "FullyQualifiedName~CallingThen_WhenIsSuccess_ShouldInvokeG
 dotnet pack -c Release -o ./artifacts
 ```
 
+## Git Workflow
+
+- Always commit changes after completing work
+- Use [Conventional Commits](https://www.conventionalcommits.org/) format:
+  - `feat:` new features
+  - `fix:` bug fixes
+  - `docs:` documentation changes
+  - `refactor:` code refactoring
+  - `test:` adding or updating tests
+  - `chore:` maintenance tasks
+
 ## Architecture
 
 ### Core Types (`src/`)
