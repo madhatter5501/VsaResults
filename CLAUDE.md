@@ -8,109 +8,118 @@ VsaResults is a C# library providing a fluent discriminated union (`ErrorOr<T>`)
 
 **Package**: `dotnet add package VsaResults`
 
-## Build Commands
+## Commands
+
+### Setup
 
 ```bash
-# Restore dependencies
 dotnet restore
+```
 
-# Build (Release with warnings as errors - same as CI)
+### Development
+
+```bash
+dotnet watch run --project src/ErrorOr
+```
+
+### Build
+
+| Context | Command |
+|---------|---------|
+| All (Release, warnings as errors) | `dotnet build -c Release -warnaserror` |
+| Debug | `dotnet build` |
+
+### Test
+
+| Context | Framework | Command |
+|---------|-----------|---------|
+| All tests | xUnit | `dotnet test -c Release` |
+| Specific class | xUnit | `dotnet test --filter "FullyQualifiedName~ThenTests"` |
+| Single test | xUnit | `dotnet test --filter "FullyQualifiedName~CallingThen_WhenIsSuccess_ShouldInvokeGivenFunc"` |
+
+### Quality
+
+```bash
+# Build with analyzers (lint)
 dotnet build -c Release -warnaserror
-
-# Run all tests
-dotnet test -c Release
-
-# Run a specific test class
-dotnet test --filter "FullyQualifiedName~ThenTests"
-
-# Run a single test
-dotnet test --filter "FullyQualifiedName~CallingThen_WhenIsSuccess_ShouldInvokeGivenFunc"
 
 # Pack NuGet package
 dotnet pack -c Release -o ./artifacts
 ```
 
-## Git Workflow
-
-- Always commit changes after completing work
-- Use [Conventional Commits](https://www.conventionalcommits.org/) format:
-  - `feat:` new features
-  - `fix:` bug fixes
-  - `docs:` documentation changes
-  - `refactor:` code refactoring
-  - `test:` adding or updating tests
-  - `chore:` maintenance tasks
-
 ## Architecture
 
-### Core Types (`src/`)
+### Directory Structure
 
-**`ErrorOr<TValue>`** - The main discriminated union type (`src/ErrorOr/ErrorOr.cs`)
-- Readonly record struct wrapping either a value or a list of errors
-- Supports context propagation via `ImmutableDictionary<string, object>`
-- Partial class split across multiple files by feature (Then, Match, Switch, Else, FailIf, etc.)
+```
+src/
+├── ErrorOr/
+│   ├── ErrorOr.cs              # Main discriminated union type
+│   ├── ErrorOr.*.cs            # Partial classes by feature (Then, Match, Switch, etc.)
+│   ├── Features/               # VSA feature pipeline system
+│   ├── WideEvents/             # Observability via wide events
+│   ├── AspNetCore/             # ASP.NET Core integration
+│   └── Serialization/          # JSON serialization support
+├── Errors/
+│   └── Error.cs                # Error representation
+tests/
+└── ErrorOr/                    # xUnit tests with FluentAssertions
+```
 
-**`Error`** - Error representation (`src/Errors/Error.cs`)
-- Readonly record struct with Code, Description, Type, and optional Metadata
-- Factory methods for built-in types: `Error.Validation()`, `Error.NotFound()`, `Error.Unauthorized()`, etc.
-- Custom errors via `Error.Custom(type, code, description)`
+### Key Patterns
 
-### Feature Pipeline System (`src/ErrorOr/Features/`)
+1. **Discriminated Union**: `ErrorOr<TValue>` is a readonly record struct wrapping either a value or error list
+2. **Fluent Chaining**: Methods return `ErrorOr<T>` enabling `result.Then().FailIf().Else().Match()`
+3. **Async Variants**: Most methods have async versions (`ThenAsync`, `MatchAsync`, `ElseAsync`)
+4. **Context Propagation**: Wide event context flows through transformations via `WithContext()`
+5. **Feature Pipeline**: VSA pattern with `IQueryFeature` and `IMutationFeature` interfaces
 
-The library implements a VSA feature pipeline with these interfaces:
+### Key Files
 
-- **`IQueryFeature<TRequest, TResult>`** - Read-only operations: Validate → Execute Query
-- **`IMutationFeature<TRequest, TResult>`** - State-changing operations: Validate → Enforce Requirements → Execute Mutation → Run Side Effects
+| File | Purpose |
+|------|---------|
+| `src/ErrorOr/ErrorOr.cs` | Main discriminated union type |
+| `src/Errors/Error.cs` | Error representation with factory methods |
+| `src/ErrorOr/Features/` | VSA feature pipeline interfaces |
+| `src/ErrorOr/WideEvents/` | Wide events observability system |
+| `src/ErrorOr/AspNetCore/` | Minimal API and MVC integration |
 
-Pipeline components:
-- `IFeatureValidator<TRequest>` - Request validation
-- `IFeatureRequirements<TRequest>` - Load entities, enforce business rules
-- `IFeatureMutator<TRequest, TResult>` - Core mutation logic
-- `IFeatureQuery<TRequest, TResult>` - Query execution
-- `IFeatureSideEffects<TRequest>` - Post-success effects (notifications, etc.)
+## Git Workflow
 
-Each component has a no-op default (`NoOpValidator`, `NoOpRequirements`, `NoOpSideEffects`).
+When asked to commit changes:
 
-### Wide Events / Canonical Log Lines (`src/ErrorOr/WideEvents/`)
+1. **Review changes**: Run `git status` and `git diff`
+2. **Check style**: Run `git log --oneline -5` to match existing commit message style
+3. **Stage files**: `git add` relevant files
+4. **Commit** using [Conventional Commits](https://www.conventionalcommits.org/):
+   - `feat:` new features
+   - `fix:` bug fixes
+   - `docs:` documentation changes
+   - `refactor:` code refactoring
+   - `test:` test changes
+   - `chore:` maintenance tasks
+5. **Include**: `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>`
 
-One structured log event per feature execution containing full context:
-- `FeatureWideEvent` - The event model with timing, outcome, errors, trace context
-- `FeatureWideEventBuilder` - Fluent builder accumulated during execution
-- `IWideEventEmitter` - Abstraction for emitting events (e.g., `SerilogWideEventEmitter`)
+### Branch Naming
 
-### ASP.NET Core Integration (`src/ErrorOr/AspNetCore/`)
+- Feature branches: `feat/<ticket-id>-<short-description>`
+- Bug fixes: `fix/<ticket-id>-<short-description>`
 
-- `FeatureHandler` - Static factory for Minimal API delegates
-- `FeatureController` - Base controller with `ToActionResult()` methods
-- `ApiResults` - IResult factory mapping ErrorOr to HTTP responses
-- `ActionResultExtensions` - Extension methods for MVC controllers
+Do NOT push to remote unless explicitly asked.
 
-### JSON Serialization (`src/ErrorOr/Serialization/`)
+## Conventions
 
-- `ErrorOrJsonConverterFactory` - Auto-registers converters with System.Text.Json
-- `ErrorOrJsonConverter<T>` - Serializes as `{ isError, value?, errors? }`
-- `ErrorJsonConverter` - Handles Error serialization with metadata
+1. Always read before editing - Use the Read tool before making changes
+2. Test coverage required - New code must include xUnit tests with FluentAssertions
+3. Use Arrange-Act-Assert pattern with explicit comments in tests
+4. Follow existing partial class organization by feature
+5. Maintain readonly record struct semantics for core types
+6. Include async variants for new chainable methods
 
 ## Test Conventions
 
 - Framework: xUnit with FluentAssertions
 - Location: `tests/` directory
 - Pattern: `{FeatureName}Tests.cs` with `[Fact]` attributes
-- Arrange-Act-Assert structure with explicit comments
+- Structure: Arrange-Act-Assert with explicit comments
 - Test utilities in `tests/ErrorOr/TestUtils.cs`
-
-## Key Patterns
-
-**Fluent chaining**: Methods return `ErrorOr<T>` enabling:
-```csharp
-result.Then(transform).FailIf(predicate, error).Else(fallback).Match(onValue, onError)
-```
-
-**Async variants**: Most methods have async versions (`ThenAsync`, `MatchAsync`, `ElseAsync`)
-
-**Extension methods**: `Task<ErrorOr<T>>` extensions allow chaining without await:
-```csharp
-await asyncResult.ThenAsync(x => ...).Then(x => ...)
-```
-
-**Context propagation**: Wide event context flows through all transformations via `WithContext()` and internal `_context` field.
