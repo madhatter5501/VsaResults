@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Suppress StyleCop during initial development -->
+    <NoWarn>$(NoWarn);SA1402;SA1201;SA1202;SA1204;SA1214;SA1407;SA1413;SA1623;SA1624;SA1629;SA1117;SA1128;CS0414</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../VsaResults.Messaging/VsaResults.Messaging.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.2" />
+    <PackageReference Include="Azure.Identity" Version="1.13.2" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PackageId>VsaResults.Messaging.AzureServiceBus</PackageId>
+    <RootNamespace>VsaResults.Messaging.AzureServiceBus</RootNamespace>
+    <AssemblyName>VsaResults.Messaging.AzureServiceBus</AssemblyName>
+    <Version>1.0.0</Version>
+    <Authors>Amichai Mantinband</Authors>
+    <PackageIcon>icon-square.png</PackageIcon>
+    <PackageTags>VSA;VerticalSliceArchitecture;Messaging;AzureServiceBus;Transport;Azure</PackageTags>
+    <Description>Azure Service Bus transport extension for VsaResults.Messaging.</Description>
+    <PackageProjectUrl>https://github.com/amantinband/error-or</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <licenses>https://opensource.org/licenses/MIT</licenses>
+    <RepositoryUrl>https://github.com/amantinband/error-or</RepositoryUrl>
+    <PackageOutputPath>../../artifacts/</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../assets/icon-square.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+</Project>

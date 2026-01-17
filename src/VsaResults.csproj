@@ -11,6 +11,7 @@
   <!-- Allow feature packages to access internal members -->
   <ItemGroup>
     <InternalsVisibleTo Include="VsaResults.Features" />
+    <InternalsVisibleTo Include="VsaResults.AspNetCore" />
     <InternalsVisibleTo Include="Tests" />
   </ItemGroup>
 
@@ -20,6 +21,8 @@
     <Compile Remove="VsaResults.Features/**/*.cs" />
     <Compile Remove="VsaResults.AspNetCore/**/*.cs" />
     <Compile Remove="VsaResults.Messaging.RabbitMq/**/*.cs" />
+    <Compile Remove="VsaResults.Messaging.Kafka/**/*.cs" />
+    <Compile Remove="VsaResults.Messaging.AzureServiceBus/**/*.cs" />
   </ItemGroup>
 
   <PropertyGroup>

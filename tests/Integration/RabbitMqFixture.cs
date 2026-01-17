@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using VsaResults;
 using VsaResults.Messaging;
+using VsaResults.Messaging.RabbitMq;
 
 namespace Tests.Integration;
 

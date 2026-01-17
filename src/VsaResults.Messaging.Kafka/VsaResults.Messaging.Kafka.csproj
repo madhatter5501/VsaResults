@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Suppress StyleCop during initial development -->
+    <NoWarn>$(NoWarn);SA1402;SA1201;SA1202;SA1204;SA1214;SA1407;SA1413;SA1623;SA1624;SA1629;SA1117;SA1128;CS0414</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../VsaResults.Messaging/VsaResults.Messaging.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" Version="2.8.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PackageId>VsaResults.Messaging.Kafka</PackageId>
+    <RootNamespace>VsaResults.Messaging.Kafka</RootNamespace>
+    <AssemblyName>VsaResults.Messaging.Kafka</AssemblyName>
+    <Version>1.0.0</Version>
+    <Authors>Amichai Mantinband</Authors>
+    <PackageIcon>icon-square.png</PackageIcon>
+    <PackageTags>VSA;VerticalSliceArchitecture;Messaging;Kafka;Transport</PackageTags>
+    <Description>Apache Kafka transport extension for VsaResults.Messaging.</Description>
+    <PackageProjectUrl>https://github.com/amantinband/error-or</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <licenses>https://opensource.org/licenses/MIT</licenses>
+    <RepositoryUrl>https://github.com/amantinband/error-or</RepositoryUrl>
+    <PackageOutputPath>../../artifacts/</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../assets/icon-square.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+</Project>

@@ -8,6 +8,13 @@
     <NoWarn>$(NoWarn);SA1402;SA1201;SA1202;SA1204;SA1214;SA1407;SA1413;SA1623;SA1624;SA1629;SA1117;SA1128;CS0414</NoWarn>
   </PropertyGroup>
 
+  <!-- Allow transport packages to access internal members -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="VsaResults.Messaging.RabbitMq" />
+    <InternalsVisibleTo Include="VsaResults.Messaging.Kafka" />
+    <InternalsVisibleTo Include="VsaResults.Messaging.AzureServiceBus" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../VsaResults.csproj" />
     <ProjectReference Include="../VsaResults.Features/VsaResults.Features.csproj" />

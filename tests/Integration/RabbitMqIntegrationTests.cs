@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using VsaResults;
 using VsaResults.Messaging;
+using VsaResults.Messaging.RabbitMq;
 using Xunit;
 
 namespace Tests.Integration;
