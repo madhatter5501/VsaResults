@@ -1,26 +1,30 @@
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
+using VsaResults;
+using VsaResults.Messaging;
 
-namespace VsaResults.Messaging;
+namespace VsaResults.Messaging.RabbitMq;
 
 /// <summary>
-/// RabbitMQ publish transport for pub/sub messaging.
+/// RabbitMQ send transport for point-to-point messaging.
 /// </summary>
-public class RabbitMqPublishTransport : IPublishTransport
+public class RabbitMqSendTransport : ISendTransport
 {
     private readonly IChannel _channel;
     private readonly RabbitMqTransportOptions _options;
     private readonly IMessageSerializer _serializer;
     private readonly ILogger? _logger;
-    private readonly HashSet<string> _declaredExchanges = new();
+    private readonly HashSet<string> _declaredQueues = new();
     private readonly SemaphoreSlim _declareLock = new(1, 1);
 
-    internal RabbitMqPublishTransport(
+    internal RabbitMqSendTransport(
+        EndpointAddress address,
         IChannel channel,
         RabbitMqTransportOptions options,
         IMessageSerializer serializer,
         ILogger? logger)
     {
+        Address = address;
         _channel = channel;
         _options = options;
         _serializer = serializer;
@@ -28,17 +32,20 @@ public class RabbitMqPublishTransport : IPublishTransport
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> PublishAsync<TMessage>(
+    public EndpointAddress Address { get; }
+
+    /// <inheritdoc />
+    public async Task<ErrorOr<Unit>> SendAsync<TMessage>(
         MessageEnvelope envelope,
         CancellationToken ct = default)
-        where TMessage : class, IEvent
+        where TMessage : class, IMessage
     {
         try
         {
-            var exchangeName = GetExchangeName<TMessage>();
+            var queueName = Address.Name;
 
-            // Declare the exchange if we haven't already
-            await EnsureExchangeDeclaredAsync(exchangeName, ct);
+            // Ensure queue exists
+            await EnsureQueueDeclaredAsync(queueName, ct);
 
             // Create message properties
             var properties = new BasicProperties
@@ -52,35 +59,36 @@ public class RabbitMqPublishTransport : IPublishTransport
                 Headers = ConvertHeaders(envelope)
             };
 
-            // Publish to the exchange (fanout, so routing key is empty)
+            // Send directly to the queue using default exchange
+            // With RabbitMQ's default exchange, routing key = queue name
             await _channel.BasicPublishAsync(
-                exchange: exchangeName,
-                routingKey: string.Empty,
+                exchange: string.Empty, // Default exchange
+                routingKey: queueName,
                 mandatory: false,
                 basicProperties: properties,
                 body: envelope.Body,
                 cancellationToken: ct);
 
             _logger?.LogDebug(
-                "Published {MessageType} to exchange {Exchange}",
+                "Sent {MessageType} to queue {Queue}",
                 typeof(TMessage).Name,
-                exchangeName);
+                queueName);
 
             return Unit.Value;
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to publish {MessageType}", typeof(TMessage).Name);
-            return MessagingErrors.TransportError($"Failed to publish message: {ex.Message}");
+            _logger?.LogError(ex, "Failed to send {MessageType} to {Address}", typeof(TMessage).Name, Address);
+            return MessagingErrors.DeliveryFailed(Address, ex.Message);
         }
     }
 
     /// <summary>
-    /// Ensures the exchange is declared.
+    /// Ensures the queue is declared.
     /// </summary>
-    private async Task EnsureExchangeDeclaredAsync(string exchangeName, CancellationToken ct)
+    private async Task EnsureQueueDeclaredAsync(string queueName, CancellationToken ct)
     {
-        if (_declaredExchanges.Contains(exchangeName))
+        if (_declaredQueues.Contains(queueName))
         {
             return;
         }
@@ -88,22 +96,22 @@ public class RabbitMqPublishTransport : IPublishTransport
         await _declareLock.WaitAsync(ct);
         try
         {
-            if (_declaredExchanges.Contains(exchangeName))
+            if (_declaredQueues.Contains(queueName))
             {
                 return;
             }
 
-            await _channel.ExchangeDeclareAsync(
-                exchange: exchangeName,
-                type: ExchangeType.Fanout,
+            await _channel.QueueDeclareAsync(
+                queue: queueName,
                 durable: _options.Durable,
+                exclusive: false,
                 autoDelete: false,
                 arguments: null,
                 cancellationToken: ct);
 
-            _declaredExchanges.Add(exchangeName);
+            _declaredQueues.Add(queueName);
 
-            _logger?.LogDebug("Declared exchange {Exchange}", exchangeName);
+            _logger?.LogDebug("Declared queue {Queue}", queueName);
         }
         finally
         {
@@ -150,21 +158,5 @@ public class RabbitMqPublishTransport : IPublishTransport
         }
 
         return headers;
-    }
-
-    /// <summary>
-    /// Gets the exchange name for a message type.
-    /// Uses the URN format from MessageTypeResolver for consistency with consumer bindings.
-    /// </summary>
-    protected virtual string GetExchangeName<TMessage>()
-        where TMessage : class, IEvent
-    {
-        // Use the URN format that MessageTypeResolver produces
-        // urn:message:Namespace:TypeName becomes exchange name with colons replaced
-        var typeResolver = new MessageTypeResolver();
-        var primaryType = typeResolver.GetPrimaryIdentifier<TMessage>();
-
-        // Replace colons and slashes to make a valid RabbitMQ exchange name
-        return primaryType.Replace(':', '_').Replace('/', '_');
     }
 }

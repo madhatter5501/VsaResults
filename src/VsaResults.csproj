@@ -8,23 +8,29 @@
     <NoWarn>$(NoWarn);CS1574</NoWarn>
   </PropertyGroup>
 
+  <!-- Allow feature packages to access internal members -->
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <InternalsVisibleTo Include="VsaResults.Features" />
+    <InternalsVisibleTo Include="Tests" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Exclude the VsaResults.Messaging project from this project -->
+    <!-- Exclude subprojects from this project -->
     <Compile Remove="VsaResults.Messaging/**/*.cs" />
+    <Compile Remove="VsaResults.Features/**/*.cs" />
+    <Compile Remove="VsaResults.AspNetCore/**/*.cs" />
+    <Compile Remove="VsaResults.Messaging.RabbitMq/**/*.cs" />
   </ItemGroup>
+
   <PropertyGroup>
     <PackageId>VsaResults</PackageId>
     <RootNamespace>VsaResults</RootNamespace>
     <AssemblyName>VsaResults</AssemblyName>
-    <Version>3.0.0</Version>
+    <Version>4.0.0</Version>
     <Authors>Amichai Mantinband</Authors>
     <PackageIcon>icon-square.png</PackageIcon>
-    <PackageTags>VSA;VerticalSliceArchitecture;Result;Results;Error;Handling;Pipeline;Features;WideEvents;Observability</PackageTags>
-    <Description>A fluent discriminated union for Vertical Slice Architecture with feature pipelines, wide events observability, and ASP.NET Core integration.</Description>
+    <PackageTags>ErrorOr;Result;Results;Error;Handling;FunctionalProgramming</PackageTags>
+    <Description>A minimal discriminated union (ErrorOr) for elegant error handling in C#. Zero external dependencies. For VSA feature pipelines, add VsaResults.Features. For ASP.NET Core integration, add VsaResults.AspNetCore.</Description>
     <PackageProjectUrl>https://github.com/amantinband/error-or</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <licenses>https://opensource.org/licenses/MIT</licenses>

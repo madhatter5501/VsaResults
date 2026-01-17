@@ -4,8 +4,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Suppress StyleCop during initial development -->
-    <NoWarn>$(NoWarn);SA1402;SA1201;SA1202;SA1204;SA1214;SA1407;SA1413;SA1623;SA1624;SA1629;SA1117;SA1128;CS0414</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,20 +12,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <PropertyGroup>
-    <PackageId>VsaResults.Messaging</PackageId>
-    <RootNamespace>VsaResults.Messaging</RootNamespace>
-    <AssemblyName>VsaResults.Messaging</AssemblyName>
-    <Version>2.0.0</Version>
+    <PackageId>VsaResults.AspNetCore</PackageId>
+    <RootNamespace>VsaResults</RootNamespace>
+    <AssemblyName>VsaResults.AspNetCore</AssemblyName>
+    <Version>1.0.0</Version>
     <Authors>Amichai Mantinband</Authors>
     <PackageIcon>icon-square.png</PackageIcon>
-    <PackageTags>VSA;VerticalSliceArchitecture;Messaging;MessageBus;PubSub;Events;Commands</PackageTags>
-    <Description>A MassTransit-compatible messaging library for VsaResults with ErrorOr integration, consumer pipelines, sagas, and multiple transport support. For RabbitMQ support, add the VsaResults.Messaging.RabbitMq package.</Description>
+    <PackageTags>VSA;VerticalSliceArchitecture;AspNetCore;MinimalApi;MVC;Controllers</PackageTags>
+    <Description>ASP.NET Core integration for VsaResults with Minimal API handlers and MVC Controller support.</Description>
     <PackageProjectUrl>https://github.com/amantinband/error-or</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <licenses>https://opensource.org/licenses/MIT</licenses>

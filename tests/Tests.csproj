@@ -24,7 +24,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\VsaResults.csproj" />
+    <ProjectReference Include="..\src\VsaResults.Features\VsaResults.Features.csproj" />
+    <ProjectReference Include="..\src\VsaResults.AspNetCore\VsaResults.AspNetCore.csproj" />
     <ProjectReference Include="..\src\VsaResults.Messaging\VsaResults.Messaging.csproj" />
+    <ProjectReference Include="..\src\VsaResults.Messaging.RabbitMq\VsaResults.Messaging.RabbitMq.csproj" />
   </ItemGroup>
 
 </Project>

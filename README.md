@@ -46,6 +46,9 @@ The original project is licensed under the MIT License. This fork extends the li
   - [`Errors`](#errors)
   - [`FirstError`](#firsterror)
   - [`ErrorsOrEmptyList`](#errorsoremptylist)
+  - [`TryGetValue`](#trygetvalue)
+  - [`TryGetErrors`](#trygeterrors)
+  - [`GetValueOrDefault`](#getvalueordefault)
 - [Methods](#methods)
   - [`Match`](#match)
     - [`Match`](#match-1)
@@ -71,6 +74,16 @@ The original project is licensed under the MIT License. This fork extends the li
   - [Built in error types](#built-in-error-types)
   - [Custom error types](#custom-error-types)
 - [Built in result types (`Result.Success`, ..)](#built-in-result-types-resultsuccess-)
+- [Additional Methods](#additional-methods)
+  - [`MapError`](#maperror)
+  - [`OrElse`](#orelse)
+  - [`GetValueOrThrow`](#getvalueorthrow)
+  - [`Flatten`](#flatten)
+  - [Tuple Deconstruction](#tuple-deconstruction)
+  - [`ErrorOrUnorderedEqualityComparer`](#errororunorderedequalitycomparer)
+  - [`Try` and `TryAsync`](#try-and-tryasync)
+  - [`Combine` and `Collect`](#combine-and-collect)
+  - [LINQ-Style Methods](#linq-style-methods)
 - [Organizing Errors](#organizing-errors)
 - [Feature Pipeline (VSA)](#feature-pipeline-vsa)
 - [Wide Events](#wide-events)
@@ -402,6 +415,44 @@ if (result.IsError)
 result.ErrorsOrEmptyList // List<Error> { }
 ```
 
+## `TryGetValue`
+
+Safely extract the value without risking an exception:
+
+```cs
+if (result.TryGetValue(out var user))
+{
+    Console.WriteLine($"Got user: {user.Name}");
+}
+else
+{
+    Console.WriteLine("Result was an error");
+}
+```
+
+## `TryGetErrors`
+
+Safely extract errors without risking an exception:
+
+```cs
+if (result.TryGetErrors(out var errors))
+{
+    foreach (var error in errors)
+    {
+        Console.WriteLine($"Error: {error.Code}");
+    }
+}
+```
+
+## `GetValueOrDefault`
+
+Get the value or a fallback if in error state:
+
+```cs
+User user = result.GetValueOrDefault(User.Anonymous);
+int count = result.GetValueOrDefault(); // returns default(int) = 0 if error
+```
+
 # Methods
 
 ## `Match`
@@ -640,6 +691,12 @@ public enum ErrorType
     NotFound,
     Unauthorized,
     Forbidden,
+    BadRequest,
+    Timeout,
+    Gone,
+    Locked,
+    TooManyRequests,
+    Unavailable,
 }
 ```
 
@@ -719,25 +776,6 @@ ErrorOr<Deleted> DeleteUser(Guid id)
 
 # Additional Methods
 
-## `Tap`
-
-`Tap` executes a side effect (like logging) without transforming the value, and returns the original ErrorOr unchanged.
-
-```cs
-result
-    .Tap(user => _logger.LogInformation($"Processing user {user.Id}"))
-    .Then(user => user.UpdateLastLogin())
-    .TapError(errors => _logger.LogWarning($"Failed with {errors.Count} errors"));
-```
-
-### `TapError` and `TapFirstError`
-
-```cs
-result
-    .TapError(errors => Console.WriteLine($"Errors: {string.Join(", ", errors.Select(e => e.Code))}"))
-    .TapFirstError(error => _metrics.RecordError(error.Type));
-```
-
 ## `MapError`
 
 `MapError` transforms errors without affecting the value path. Useful for error enrichment or translation.
@@ -814,6 +852,115 @@ Compare ErrorOr instances without considering error order:
 ```cs
 var comparer = ErrorOrUnorderedEqualityComparer<int>.Instance;
 var areEqual = comparer.Equals(result1, result2); // true if same errors in any order
+```
+
+## `Try` and `TryAsync`
+
+`Try` executes a function and wraps any thrown exception as an `Error`, allowing safe interop with exception-throwing code.
+
+```cs
+// Basic usage - wraps exceptions as Unexpected errors
+ErrorOr<int> result = ErrorOr<int>.Try(() => int.Parse("not a number"));
+// result.FirstError.Code == "FormatException"
+// result.FirstError.Description == "The input string 'not a number' was not in a correct format."
+```
+
+```cs
+// With custom error mapping
+ErrorOr<User> result = ErrorOr<User>.Try(
+    () => repository.GetUser(id),
+    ex => Error.Failure("Database.Error", ex.Message));
+```
+
+### `TryAsync`
+
+```cs
+ErrorOr<Data> result = await ErrorOr<Data>.TryAsync(
+    async () => await httpClient.GetFromJsonAsync<Data>(url));
+```
+
+```cs
+// With async error mapping
+ErrorOr<Data> result = await ErrorOr<Data>.TryAsync(
+    async () => await httpClient.GetFromJsonAsync<Data>(url),
+    async ex => await LogAndCreateError(ex));
+```
+
+## `Combine` and `Collect`
+
+`Combine` aggregates multiple `ErrorOr` results, returning a tuple of all values if successful, or all accumulated errors if any failed.
+
+```cs
+var nameResult = ValidateName(name);
+var emailResult = ValidateEmail(email);
+var ageResult = ValidateAge(age);
+
+// Combine up to 8 results (returns tuple on success)
+var combined = ErrorOrCombine.Combine(nameResult, emailResult, ageResult);
+combined.Match(
+    tuple => CreateUser(tuple.First, tuple.Second, tuple.Third),
+    errors => HandleAllErrors(errors)); // All errors from all failed validations
+```
+
+### `Collect`
+
+`Collect` aggregates a sequence of `ErrorOr<T>` results into a single `ErrorOr<List<T>>`:
+
+```cs
+var userIds = new[] { 1, 2, 3, 4, 5 };
+var userResults = userIds.Select(id => GetUser(id)); // IEnumerable<ErrorOr<User>>
+
+ErrorOr<List<User>> allUsers = ErrorOrCombine.Collect(userResults);
+// Returns List<User> if all succeeded, or all accumulated errors
+```
+
+## LINQ-Style Methods
+
+### `Select` and `SelectAsync`
+
+`Select` is an alias for `Then`, providing LINQ query syntax compatibility:
+
+```cs
+ErrorOr<string> result = errorOr.Select(value => value.ToString());
+
+// Async variant
+ErrorOr<Data> result = await errorOr.SelectAsync(async value => await TransformAsync(value));
+```
+
+### `SelectMany` and `SelectManyAsync`
+
+`SelectMany` chains operations that return `ErrorOr`, enabling LINQ query syntax:
+
+```cs
+ErrorOr<Order> result = errorOr.SelectMany(user => GetOrderForUser(user.Id));
+
+// Can be used with LINQ query syntax
+var result =
+    from user in GetUser(userId)
+    from order in GetOrder(user.DefaultOrderId)
+    from item in GetFirstItem(order.Id)
+    select item;
+```
+
+### `Where` and `WhereAsync`
+
+`Where` filters values based on a predicate, returning an error if the predicate fails:
+
+```cs
+ErrorOr<int> result = errorOr
+    .Where(value => value > 0, Error.Validation("Value.NonPositive", "Value must be positive"));
+
+// With error factory (access to the value)
+ErrorOr<User> result = errorOr
+    .Where(
+        user => user.IsActive,
+        user => Error.Validation("User.Inactive", $"User {user.Id} is not active"));
+
+// Async predicate
+ErrorOr<User> result = await errorOr
+    .WhereAsync(
+        async user => await IsUserAuthorizedAsync(user),
+        Error.Unauthorized());
 ```
 
 # Organizing Errors

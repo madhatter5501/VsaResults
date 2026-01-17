@@ -1,4 +1,4 @@
-namespace VsaResults.Messaging;
+namespace VsaResults.Messaging.RabbitMq;
 
 /// <summary>
 /// Configuration options for RabbitMQ transport.

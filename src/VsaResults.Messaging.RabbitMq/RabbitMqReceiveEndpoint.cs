@@ -3,8 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using VsaResults;
+using VsaResults.Messaging;
 
-namespace VsaResults.Messaging;
+namespace VsaResults.Messaging.RabbitMq;
 
 /// <summary>
 /// RabbitMQ receive endpoint implementation.

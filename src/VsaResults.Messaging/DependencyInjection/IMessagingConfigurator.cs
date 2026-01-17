@@ -1,4 +1,5 @@
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace VsaResults.Messaging;
 
@@ -17,12 +18,12 @@ public interface IMessagingConfigurator
     IMessagingConfigurator UseInMemoryTransport(Action<InMemoryTransportOptions>? configure = null);
 
     /// <summary>
-    /// Configures the RabbitMQ transport.
-    /// Note: Requires RabbitMQ.Client package for full functionality.
+    /// Registers a custom transport provider.
+    /// This is an extension point for external transport packages (e.g., VsaResults.Messaging.RabbitMq).
     /// </summary>
-    /// <param name="configure">The configuration action.</param>
+    /// <param name="transportRegistration">Action that registers the transport with the service collection.</param>
     /// <returns>The configurator for chaining.</returns>
-    IMessagingConfigurator UseRabbitMq(Action<RabbitMqTransportOptions> configure);
+    IMessagingConfigurator RegisterTransport(Action<IServiceCollection> transportRegistration);
 
     /// <summary>
     /// Adds consumers from the specified assemblies.

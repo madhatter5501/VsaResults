@@ -17,7 +17,7 @@ internal sealed class MessagingConfigurator : IMessagingConfigurator
     private readonly List<Type> _filterTypes = new();
 
     private InMemoryTransportOptions? _inMemoryOptions;
-    private RabbitMqTransportOptions? _rabbitMqOptions;
+    private Action<IServiceCollection>? _customTransportRegistration;
     private IRetryPolicy? _globalRetryPolicy;
     private int? _globalConcurrencyLimit;
     private (int Threshold, TimeSpan ResetInterval)? _circuitBreaker;
@@ -38,10 +38,9 @@ internal sealed class MessagingConfigurator : IMessagingConfigurator
     }
 
     /// <inheritdoc />
-    public IMessagingConfigurator UseRabbitMq(Action<RabbitMqTransportOptions> configure)
+    public IMessagingConfigurator RegisterTransport(Action<IServiceCollection> transportRegistration)
     {
-        _rabbitMqOptions = new RabbitMqTransportOptions();
-        configure(_rabbitMqOptions);
+        _customTransportRegistration = transportRegistration;
         return this;
     }
 
@@ -172,9 +171,9 @@ internal sealed class MessagingConfigurator : IMessagingConfigurator
         }
 
         // Register transport
-        if (_rabbitMqOptions is not null)
+        if (_customTransportRegistration is not null)
         {
-            RegisterRabbitMqTransport();
+            _customTransportRegistration(_services);
         }
         else if (_inMemoryOptions is not null)
         {
@@ -221,18 +220,6 @@ internal sealed class MessagingConfigurator : IMessagingConfigurator
         {
             var options = sp.GetRequiredService<InMemoryTransportOptions>();
             return new InMemoryTransport(sp, options);
-        });
-    }
-
-    private void RegisterRabbitMqTransport()
-    {
-        _services.AddSingleton(_rabbitMqOptions!);
-        _services.AddSingleton<ITransport>(sp =>
-        {
-            var options = sp.GetRequiredService<RabbitMqTransportOptions>();
-            var serializer = sp.GetRequiredService<IMessageSerializer>();
-            var logger = sp.GetService<Microsoft.Extensions.Logging.ILogger<RabbitMqTransport>>();
-            return new RabbitMqTransport(options, serializer, sp, logger);
         });
     }
 

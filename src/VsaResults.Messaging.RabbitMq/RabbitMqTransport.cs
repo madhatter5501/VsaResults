@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
+using VsaResults;
+using VsaResults.Messaging;
 
-namespace VsaResults.Messaging;
+namespace VsaResults.Messaging.RabbitMq;
 
 /// <summary>
 /// RabbitMQ transport implementation with full connection management.
