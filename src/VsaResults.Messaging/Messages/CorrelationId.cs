@@ -26,7 +26,7 @@ public readonly record struct CorrelationId
     /// </summary>
     /// <param name="value">The string to parse.</param>
     /// <returns>The parsed correlation ID or an error.</returns>
-    public static ErrorOr<CorrelationId> Parse(string value) =>
+    public static VsaResult<CorrelationId> Parse(string value) =>
         Guid.TryParse(value, out var guid)
             ? new CorrelationId(guid)
             : MessagingErrors.InvalidCorrelationId(value);

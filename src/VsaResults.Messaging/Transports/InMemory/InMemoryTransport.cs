@@ -31,7 +31,7 @@ public sealed class InMemoryTransport : ITransport
     public string Scheme => "inmemory";
 
     /// <inheritdoc />
-    public Task<ErrorOr<IReceiveEndpoint>> CreateReceiveEndpointAsync(
+    public Task<VsaResult<IReceiveEndpoint>> CreateReceiveEndpointAsync(
         EndpointAddress address,
         Action<IReceiveEndpointConfigurator> configure,
         CancellationToken ct = default)
@@ -57,25 +57,25 @@ public sealed class InMemoryTransport : ITransport
             exchange.Bind(queue);
         }
 
-        return Task.FromResult<ErrorOr<IReceiveEndpoint>>(endpoint);
+        return Task.FromResult<VsaResult<IReceiveEndpoint>>(endpoint);
     }
 
     /// <inheritdoc />
-    public Task<ErrorOr<ISendTransport>> GetSendTransportAsync(
+    public Task<VsaResult<ISendTransport>> GetSendTransportAsync(
         EndpointAddress address,
         CancellationToken ct = default)
     {
         var queue = GetOrCreateQueue(address.Name);
         var transport = new InMemorySendTransport(address, queue);
-        return Task.FromResult<ErrorOr<ISendTransport>>(transport);
+        return Task.FromResult<VsaResult<ISendTransport>>(transport);
     }
 
     /// <inheritdoc />
-    public Task<ErrorOr<IPublishTransport>> GetPublishTransportAsync(
+    public Task<VsaResult<IPublishTransport>> GetPublishTransportAsync(
         CancellationToken ct = default)
     {
         var transport = new InMemoryPublishTransport(_exchanges, _queues);
-        return Task.FromResult<ErrorOr<IPublishTransport>>(transport);
+        return Task.FromResult<VsaResult<IPublishTransport>>(transport);
     }
 
     /// <inheritdoc />

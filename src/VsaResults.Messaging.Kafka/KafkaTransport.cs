@@ -44,7 +44,7 @@ public class KafkaTransport : ITransport
     internal IProducer<string, byte[]>? Producer => _producer;
 
     /// <inheritdoc />
-    public async Task<ErrorOr<IReceiveEndpoint>> CreateReceiveEndpointAsync(
+    public async Task<VsaResult<IReceiveEndpoint>> CreateReceiveEndpointAsync(
         EndpointAddress address,
         Action<IReceiveEndpointConfigurator> configure,
         CancellationToken ct = default)
@@ -64,12 +64,12 @@ public class KafkaTransport : ITransport
 
         _receiveEndpoints.Add(endpoint);
 
-        ErrorOr<IReceiveEndpoint> result = endpoint;
+        VsaResult<IReceiveEndpoint> result = endpoint;
         return result;
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<ISendTransport>> GetSendTransportAsync(
+    public async Task<VsaResult<ISendTransport>> GetSendTransportAsync(
         EndpointAddress address,
         CancellationToken ct = default)
     {
@@ -82,12 +82,12 @@ public class KafkaTransport : ITransport
         }
 
         var transport = new KafkaSendTransport(address, _producer!, _options, _logger);
-        ErrorOr<ISendTransport> result = transport;
+        VsaResult<ISendTransport> result = transport;
         return result;
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<IPublishTransport>> GetPublishTransportAsync(CancellationToken ct = default)
+    public async Task<VsaResult<IPublishTransport>> GetPublishTransportAsync(CancellationToken ct = default)
     {
         ThrowIfDisposed();
 
@@ -98,14 +98,14 @@ public class KafkaTransport : ITransport
         }
 
         var transport = new KafkaPublishTransport(_producer!, _options, _logger);
-        ErrorOr<IPublishTransport> result = transport;
+        VsaResult<IPublishTransport> result = transport;
         return result;
     }
 
     /// <summary>
     /// Ensures the producer is initialized.
     /// </summary>
-    internal async Task<ErrorOr<Unit>> EnsureProducerAsync(CancellationToken ct = default)
+    internal async Task<VsaResult<Unit>> EnsureProducerAsync(CancellationToken ct = default)
     {
         if (_producer is not null)
         {

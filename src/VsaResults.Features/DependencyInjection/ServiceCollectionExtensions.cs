@@ -19,7 +19,7 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="assemblies">The assemblies to scan for feature implementations.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddErrorOrFeatures(this IServiceCollection services, params Assembly[] assemblies)
+    public static IServiceCollection AddVsaFeatures(this IServiceCollection services, params Assembly[] assemblies)
     {
         foreach (var assembly in assemblies)
         {
@@ -35,8 +35,8 @@ public static class ServiceCollectionExtensions
     /// <typeparam name="T">A type in the assembly to scan.</typeparam>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddErrorOrFeatures<T>(this IServiceCollection services) =>
-        services.AddErrorOrFeatures(typeof(T).Assembly);
+    public static IServiceCollection AddVsaFeatures<T>(this IServiceCollection services) =>
+        services.AddVsaFeatures(typeof(T).Assembly);
 
     /// <summary>
     /// Registers a specific wide event emitter.

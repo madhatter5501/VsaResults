@@ -19,7 +19,7 @@ public class JsonConverterEdgeCaseTests
         var options = CreateOptions();
 
         // Act
-        var result = JsonSerializer.Deserialize<ErrorOr<int>>(json, options);
+        var result = JsonSerializer.Deserialize<VsaResult<int>>(json, options);
 
         // Assert
         result.IsError.Should().BeFalse();
@@ -37,7 +37,7 @@ public class JsonConverterEdgeCaseTests
         var options = CreateOptions();
 
         // Act
-        var result = JsonSerializer.Deserialize<ErrorOr<string>>(json, options);
+        var result = JsonSerializer.Deserialize<VsaResult<string>>(json, options);
 
         // Assert
         result.IsError.Should().BeFalse();
@@ -55,7 +55,7 @@ public class JsonConverterEdgeCaseTests
         var options = CreateOptions();
 
         // Act
-        var result = JsonSerializer.Deserialize<ErrorOr<int>>(json, options);
+        var result = JsonSerializer.Deserialize<VsaResult<int>>(json, options);
 
         // Assert
         result.IsError.Should().BeTrue();
@@ -70,7 +70,7 @@ public class JsonConverterEdgeCaseTests
         var options = CreateOptions();
 
         // Act
-        var result = JsonSerializer.Deserialize<ErrorOr<int>>(json, options);
+        var result = JsonSerializer.Deserialize<VsaResult<int>>(json, options);
 
         // Assert
         result.IsError.Should().BeFalse();
@@ -85,7 +85,7 @@ public class JsonConverterEdgeCaseTests
         var options = CreateOptions();
 
         // Act
-        var result = JsonSerializer.Deserialize<ErrorOr<int>>(json, options);
+        var result = JsonSerializer.Deserialize<VsaResult<int>>(json, options);
 
         // Assert
         result.IsError.Should().BeTrue();
@@ -99,7 +99,7 @@ public class JsonConverterEdgeCaseTests
         var options = CreateOptions();
 
         // Act
-        var result = JsonSerializer.Deserialize<ErrorOr<string>>(json, options);
+        var result = JsonSerializer.Deserialize<VsaResult<string>>(json, options);
 
         // Assert
         result.IsError.Should().BeTrue();
@@ -113,7 +113,7 @@ public class JsonConverterEdgeCaseTests
         var options = CreateOptions();
 
         // Act
-        var result = JsonSerializer.Deserialize<ErrorOr<string>>(json, options);
+        var result = JsonSerializer.Deserialize<VsaResult<string>>(json, options);
 
         // Assert
         result.IsError.Should().BeFalse();
@@ -128,7 +128,7 @@ public class JsonConverterEdgeCaseTests
         var options = CreateOptions();
 
         // Act
-        var result = JsonSerializer.Deserialize<ErrorOr<int>>(json, options);
+        var result = JsonSerializer.Deserialize<VsaResult<int>>(json, options);
 
         // Assert
         result.IsError.Should().BeFalse();
@@ -139,7 +139,7 @@ public class JsonConverterEdgeCaseTests
     public void ErrorOr_ShouldSerializeAndDeserializeNestedObject()
     {
         // Arrange
-        ErrorOr<NestedObject> errorOr = new NestedObject
+        VsaResult<NestedObject> errorOr = new NestedObject
         {
             Name = "Parent",
             Child = new ChildObject { Value = 100 },
@@ -148,7 +148,7 @@ public class JsonConverterEdgeCaseTests
 
         // Act
         var json = JsonSerializer.Serialize(errorOr, options);
-        var result = JsonSerializer.Deserialize<ErrorOr<NestedObject>>(json, options);
+        var result = JsonSerializer.Deserialize<VsaResult<NestedObject>>(json, options);
 
         // Assert
         result.IsError.Should().BeFalse();
@@ -160,12 +160,12 @@ public class JsonConverterEdgeCaseTests
     public void ErrorOr_ShouldSerializeAndDeserializeListValue()
     {
         // Arrange
-        ErrorOr<List<string>> errorOr = new List<string> { "one", "two", "three" };
+        VsaResult<List<string>> errorOr = new List<string> { "one", "two", "three" };
         var options = CreateOptions();
 
         // Act
         var json = JsonSerializer.Serialize(errorOr, options);
-        var result = JsonSerializer.Deserialize<ErrorOr<List<string>>>(json, options);
+        var result = JsonSerializer.Deserialize<VsaResult<List<string>>>(json, options);
 
         // Assert
         result.IsError.Should().BeFalse();
@@ -181,7 +181,7 @@ public class JsonConverterEdgeCaseTests
         var options = CreateOptions();
 
         // Act
-        var act = () => JsonSerializer.Deserialize<ErrorOr<int>>(json, options);
+        var act = () => JsonSerializer.Deserialize<VsaResult<int>>(json, options);
 
         // Assert
         act.Should().Throw<JsonException>();
@@ -195,7 +195,7 @@ public class JsonConverterEdgeCaseTests
         var options = CreateOptions();
 
         // Act
-        var act = () => JsonSerializer.Deserialize<ErrorOr<int>>(json, options);
+        var act = () => JsonSerializer.Deserialize<VsaResult<int>>(json, options);
 
         // Assert
         act.Should().Throw<JsonException>()
@@ -212,12 +212,12 @@ public class JsonConverterEdgeCaseTests
             { "timestamp", "2024-01-01T00:00:00Z" },
             { "tags", new[] { "tag1", "tag2" } },
         };
-        ErrorOr<int> errorOr = Error.NotFound("User.NotFound", "User not found", metadata);
+        VsaResult<int> errorOr = Error.NotFound("User.NotFound", "User not found", metadata);
         var options = CreateOptions();
 
         // Act
         var json = JsonSerializer.Serialize(errorOr, options);
-        var result = JsonSerializer.Deserialize<ErrorOr<int>>(json, options);
+        var result = JsonSerializer.Deserialize<VsaResult<int>>(json, options);
 
         // Assert
         result.IsError.Should().BeTrue();
@@ -244,12 +244,12 @@ public class JsonConverterEdgeCaseTests
     {
         // Arrange
         var error = Error.Custom((int)errorType, $"{errorType}.Code", $"{errorType} description");
-        ErrorOr<string> errorOr = error;
+        VsaResult<string> errorOr = error;
         var options = CreateOptions();
 
         // Act
         var json = JsonSerializer.Serialize(errorOr, options);
-        var result = JsonSerializer.Deserialize<ErrorOr<string>>(json, options);
+        var result = JsonSerializer.Deserialize<VsaResult<string>>(json, options);
 
         // Assert
         result.IsError.Should().BeTrue();

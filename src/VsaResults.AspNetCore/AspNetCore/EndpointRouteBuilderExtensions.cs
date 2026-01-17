@@ -44,7 +44,7 @@ public static class EndpointRouteBuilderExtensions
     public static RouteHandlerBuilder MapGetFeature<TRequest, TResult>(
         this IEndpointRouteBuilder endpoints,
         string pattern,
-        Func<ErrorOr<TResult>, IResult> resultMapper)
+        Func<VsaResult<TResult>, IResult> resultMapper)
         where TRequest : notnull =>
         endpoints.MapGet(pattern, FeatureHandler.Query<TRequest, TResult>(resultMapper));
 
@@ -104,7 +104,7 @@ public static class EndpointRouteBuilderExtensions
     public static RouteHandlerBuilder MapPutFeature<TRequest, TResult>(
         this IEndpointRouteBuilder endpoints,
         string pattern,
-        Func<ErrorOr<TResult>, IResult> resultMapper)
+        Func<VsaResult<TResult>, IResult> resultMapper)
         where TRequest : notnull =>
         endpoints.MapPut(pattern, FeatureHandler.Mutation<TRequest, TResult>(resultMapper));
 

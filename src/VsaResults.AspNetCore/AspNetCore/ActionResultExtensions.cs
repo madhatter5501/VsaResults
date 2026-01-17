@@ -14,7 +14,7 @@ public static class ActionResultExtensions
     /// <typeparam name="T">The result type.</typeparam>
     /// <param name="result">The ErrorOr result.</param>
     /// <returns>An ActionResult representing the response.</returns>
-    public static ActionResult<T> ToOkResult<T>(this ErrorOr<T> result) =>
+    public static ActionResult<T> ToOkResult<T>(this VsaResult<T> result) =>
         result.Match<ActionResult<T>>(
             value => new OkObjectResult(value),
             errors => ToProblemDetailsResult(errors));
@@ -25,7 +25,7 @@ public static class ActionResultExtensions
     /// <typeparam name="T">The result type.</typeparam>
     /// <param name="task">The async ErrorOr result.</param>
     /// <returns>An ActionResult representing the response.</returns>
-    public static Task<ActionResult<T>> ToOkResult<T>(this Task<ErrorOr<T>> task) =>
+    public static Task<ActionResult<T>> ToOkResult<T>(this Task<VsaResult<T>> task) =>
         task.ThenSync(result => result.ToOkResult());
 
     /// <summary>
@@ -35,7 +35,7 @@ public static class ActionResultExtensions
     /// <param name="result">The ErrorOr result.</param>
     /// <param name="location">The location of the created resource.</param>
     /// <returns>An ActionResult representing the response.</returns>
-    public static ActionResult<T> ToCreatedResult<T>(this ErrorOr<T> result, string location) =>
+    public static ActionResult<T> ToCreatedResult<T>(this VsaResult<T> result, string location) =>
         result.Match<ActionResult<T>>(
             value => new CreatedResult(location, value),
             errors => ToProblemDetailsResult(errors));
@@ -47,7 +47,7 @@ public static class ActionResultExtensions
     /// <param name="result">The ErrorOr result.</param>
     /// <param name="locationSelector">Function to generate the location from the value.</param>
     /// <returns>An ActionResult representing the response.</returns>
-    public static ActionResult<T> ToCreatedResult<T>(this ErrorOr<T> result, Func<T, string> locationSelector) =>
+    public static ActionResult<T> ToCreatedResult<T>(this VsaResult<T> result, Func<T, string> locationSelector) =>
         result.Match<ActionResult<T>>(
             value => new CreatedResult(locationSelector(value), value),
             errors => ToProblemDetailsResult(errors));
@@ -59,7 +59,7 @@ public static class ActionResultExtensions
     /// <param name="task">The async ErrorOr result.</param>
     /// <param name="locationSelector">Function to generate the location from the value.</param>
     /// <returns>An ActionResult representing the response.</returns>
-    public static Task<ActionResult<T>> ToCreatedResult<T>(this Task<ErrorOr<T>> task, Func<T, string> locationSelector) =>
+    public static Task<ActionResult<T>> ToCreatedResult<T>(this Task<VsaResult<T>> task, Func<T, string> locationSelector) =>
         task.ThenSync(result => result.ToCreatedResult(locationSelector));
 
     /// <summary>
@@ -67,7 +67,7 @@ public static class ActionResultExtensions
     /// </summary>
     /// <param name="result">The ErrorOr result.</param>
     /// <returns>An IActionResult representing the response.</returns>
-    public static IActionResult ToNoContentResult(this ErrorOr<Success> result) =>
+    public static IActionResult ToNoContentResult(this VsaResult<Success> result) =>
         result.Match<IActionResult>(
             _ => new NoContentResult(),
             errors => ToProblemDetailsResult(errors));
@@ -77,7 +77,7 @@ public static class ActionResultExtensions
     /// </summary>
     /// <param name="result">The ErrorOr Unit result.</param>
     /// <returns>An IActionResult representing the response.</returns>
-    public static IActionResult ToNoContentResult(this ErrorOr<Unit> result) =>
+    public static IActionResult ToNoContentResult(this VsaResult<Unit> result) =>
         result.Match<IActionResult>(
             _ => new NoContentResult(),
             errors => ToProblemDetailsResult(errors));
@@ -87,7 +87,7 @@ public static class ActionResultExtensions
     /// </summary>
     /// <param name="task">The async ErrorOr result.</param>
     /// <returns>An IActionResult representing the response.</returns>
-    public static Task<IActionResult> ToNoContentResult(this Task<ErrorOr<Unit>> task) =>
+    public static Task<IActionResult> ToNoContentResult(this Task<VsaResult<Unit>> task) =>
         task.ThenSync(result => result.ToNoContentResult());
 
     /// <summary>

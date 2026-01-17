@@ -49,7 +49,7 @@ public interface IFilter<TContext>
     /// <param name="next">The next pipe in the chain.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    Task<ErrorOr<Unit>> SendAsync(
+    Task<VsaResult<Unit>> SendAsync(
         TContext context,
         IPipe<TContext> next,
         CancellationToken ct = default);
@@ -78,7 +78,7 @@ public interface IFilter<TInput, TOutput>
     /// <param name="next">The next pipe expecting the output context type.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    Task<ErrorOr<Unit>> SendAsync(
+    Task<VsaResult<Unit>> SendAsync(
         TInput context,
         IPipe<TOutput> next,
         CancellationToken ct = default);

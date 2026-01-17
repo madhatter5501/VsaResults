@@ -52,7 +52,7 @@ public sealed class PipeBuilder<TContext>
     /// <param name="filterName">Optional name for diagnostics.</param>
     /// <returns>This builder for chaining.</returns>
     public PipeBuilder<TContext> Use(
-        Func<TContext, IPipe<TContext>, CancellationToken, Task<ErrorOr<Unit>>> filterAction,
+        Func<TContext, IPipe<TContext>, CancellationToken, Task<VsaResult<Unit>>> filterAction,
         string? filterName = null)
     {
         _filters.Add(new DelegateFilter<TContext>(filterAction, filterName ?? "DelegateFilter"));
@@ -154,18 +154,18 @@ public sealed class PipeBuilder<TContext>
 internal sealed class DelegateFilter<TContext> : IFilter<TContext>
     where TContext : PipeContext
 {
-    private readonly Func<TContext, IPipe<TContext>, CancellationToken, Task<ErrorOr<Unit>>> _action;
+    private readonly Func<TContext, IPipe<TContext>, CancellationToken, Task<VsaResult<Unit>>> _action;
     private readonly string _name;
 
     public DelegateFilter(
-        Func<TContext, IPipe<TContext>, CancellationToken, Task<ErrorOr<Unit>>> action,
+        Func<TContext, IPipe<TContext>, CancellationToken, Task<VsaResult<Unit>>> action,
         string name)
     {
         _action = action;
         _name = name;
     }
 
-    public Task<ErrorOr<Unit>> SendAsync(TContext context, IPipe<TContext> next, CancellationToken ct = default)
+    public Task<VsaResult<Unit>> SendAsync(TContext context, IPipe<TContext> next, CancellationToken ct = default)
         => _action(context, next, ct);
 
     public void Probe(ProbeContext context) => context.Add(_name);

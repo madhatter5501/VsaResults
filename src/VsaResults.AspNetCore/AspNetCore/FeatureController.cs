@@ -110,7 +110,7 @@ public abstract class FeatureController : ControllerBase
     /// <returns>ActionResult mapped from the result.</returns>
     protected async Task<TResponse> Query<TRequest, TResult, TResponse>(
         TRequest request,
-        Func<ErrorOr<TResult>, TResponse> resultMapper,
+        Func<VsaResult<TResult>, TResponse> resultMapper,
         CancellationToken ct = default)
     {
         var feature = HttpContext.RequestServices.GetRequiredService<IQueryFeature<TRequest, TResult>>();
@@ -132,7 +132,7 @@ public abstract class FeatureController : ControllerBase
     /// <returns>ActionResult mapped from the result.</returns>
     protected async Task<TResponse> Mutation<TRequest, TResult, TResponse>(
         TRequest request,
-        Func<ErrorOr<TResult>, TResponse> resultMapper,
+        Func<VsaResult<TResult>, TResponse> resultMapper,
         CancellationToken ct = default)
     {
         var feature = HttpContext.RequestServices.GetRequiredService<IMutationFeature<TRequest, TResult>>();

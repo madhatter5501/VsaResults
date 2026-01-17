@@ -21,6 +21,6 @@ public sealed class NoOpRequirements<TRequest> : IFeatureRequirements<TRequest>
     /// <param name="request">The request.</param>
     /// <param name="ct">The cancellation token.</param>
     /// <returns>A feature context containing the request.</returns>
-    public Task<ErrorOr<FeatureContext<TRequest>>> EnforceAsync(TRequest request, CancellationToken ct = default)
-        => Task.FromResult(new FeatureContext<TRequest> { Request = request }.ToErrorOr());
+    public Task<VsaResult<FeatureContext<TRequest>>> EnforceAsync(TRequest request, CancellationToken ct = default)
+        => Task.FromResult(new FeatureContext<TRequest> { Request = request }.ToResult());
 }

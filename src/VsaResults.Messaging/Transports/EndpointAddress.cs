@@ -29,7 +29,7 @@ public sealed record EndpointAddress
     /// </summary>
     /// <param name="uri">The URI string.</param>
     /// <returns>The endpoint address or an error.</returns>
-    public static ErrorOr<EndpointAddress> Parse(string uri)
+    public static VsaResult<EndpointAddress> Parse(string uri)
     {
         if (!Uri.TryCreate(uri, UriKind.Absolute, out var parsed))
         {

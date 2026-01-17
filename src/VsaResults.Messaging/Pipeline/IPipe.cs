@@ -14,7 +14,7 @@ public interface IPipe<TContext>
     /// <param name="context">The context to process.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    Task<ErrorOr<Unit>> SendAsync(TContext context, CancellationToken ct = default);
+    Task<VsaResult<Unit>> SendAsync(TContext context, CancellationToken ct = default);
 
     /// <summary>
     /// Probes the pipeline for diagnostic information.
@@ -38,8 +38,8 @@ internal sealed class EmptyPipe<TContext> : IPipe<TContext>
     }
 
     /// <inheritdoc />
-    public Task<ErrorOr<Unit>> SendAsync(TContext context, CancellationToken ct = default)
-        => Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+    public Task<VsaResult<Unit>> SendAsync(TContext context, CancellationToken ct = default)
+        => Task.FromResult<VsaResult<Unit>>(Unit.Value);
 
     /// <inheritdoc />
     public void Probe(ProbeContext context)
@@ -63,21 +63,21 @@ internal sealed class ComposedPipe<TContext> : IPipe<TContext>
     }
 
     /// <inheritdoc />
-    public Task<ErrorOr<Unit>> SendAsync(TContext context, CancellationToken ct = default)
+    public Task<VsaResult<Unit>> SendAsync(TContext context, CancellationToken ct = default)
     {
         if (_filters.Count == 0)
         {
-            return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+            return Task.FromResult<VsaResult<Unit>>(Unit.Value);
         }
 
         return ExecuteFilter(0, context, ct);
     }
 
-    private Task<ErrorOr<Unit>> ExecuteFilter(int index, TContext context, CancellationToken ct)
+    private Task<VsaResult<Unit>> ExecuteFilter(int index, TContext context, CancellationToken ct)
     {
         if (index >= _filters.Count)
         {
-            return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+            return Task.FromResult<VsaResult<Unit>>(Unit.Value);
         }
 
         var filter = _filters[index];
@@ -105,7 +105,7 @@ internal sealed class ComposedPipe<TContext> : IPipe<TContext>
             _nextIndex = nextIndex;
         }
 
-        public Task<ErrorOr<Unit>> SendAsync(TContext context, CancellationToken ct = default)
+        public Task<VsaResult<Unit>> SendAsync(TContext context, CancellationToken ct = default)
             => _pipe.ExecuteFilter(_nextIndex, context, ct);
 
         public void Probe(ProbeContext context)

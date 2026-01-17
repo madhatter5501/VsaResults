@@ -13,5 +13,5 @@ public interface IFeatureSideEffects<TRequest>
     /// <param name="context">The feature context with request and loaded entities.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success or side effect errors.</returns>
-    Task<ErrorOr<Unit>> ExecuteAsync(FeatureContext<TRequest> context, CancellationToken ct = default);
+    Task<VsaResult<Unit>> ExecuteAsync(FeatureContext<TRequest> context, CancellationToken ct = default);
 }

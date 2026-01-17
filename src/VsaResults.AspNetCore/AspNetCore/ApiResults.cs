@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace VsaResults;
 
 /// <summary>
-/// Static helper for converting ErrorOr results to ASP.NET Core IResult.
+/// Static helper for converting VsaResult results to ASP.NET Core IResult.
 /// Provides consistent HTTP response generation for Minimal APIs.
 /// </summary>
 public static class ApiResults
@@ -14,7 +15,7 @@ public static class ApiResults
     /// <typeparam name="T">The result type.</typeparam>
     /// <param name="result">The ErrorOr result.</param>
     /// <returns>An IResult representing the response.</returns>
-    public static IResult Ok<T>(ErrorOr<T> result) =>
+    public static IResult Ok<T>(VsaResult<T> result) =>
         result.Match(
             value => Results.Ok(value),
             errors => ToProblem(errors));
@@ -26,7 +27,7 @@ public static class ApiResults
     /// <param name="result">The ErrorOr result.</param>
     /// <param name="location">The location of the created resource.</param>
     /// <returns>An IResult representing the response.</returns>
-    public static IResult Created<T>(ErrorOr<T> result, string location) =>
+    public static IResult Created<T>(VsaResult<T> result, string location) =>
         result.Match(
             value => Results.Created(location, value),
             errors => ToProblem(errors));
@@ -38,7 +39,7 @@ public static class ApiResults
     /// <param name="result">The ErrorOr result.</param>
     /// <param name="locationSelector">Function to generate the location from the value.</param>
     /// <returns>An IResult representing the response.</returns>
-    public static IResult Created<T>(ErrorOr<T> result, Func<T, string> locationSelector) =>
+    public static IResult Created<T>(VsaResult<T> result, Func<T, string> locationSelector) =>
         result.Match(
             value => Results.Created(locationSelector(value), value),
             errors => ToProblem(errors));
@@ -48,7 +49,7 @@ public static class ApiResults
     /// </summary>
     /// <param name="result">The ErrorOr result.</param>
     /// <returns>An IResult representing the response.</returns>
-    public static IResult NoContent(ErrorOr<Success> result) =>
+    public static IResult NoContent(VsaResult<Success> result) =>
         result.Match(
             _ => Results.NoContent(),
             errors => ToProblem(errors));
@@ -58,7 +59,7 @@ public static class ApiResults
     /// </summary>
     /// <param name="result">The ErrorOr Unit result from side effects.</param>
     /// <returns>An IResult representing the response.</returns>
-    public static IResult NoContent(ErrorOr<Unit> result) =>
+    public static IResult NoContent(VsaResult<Unit> result) =>
         result.Match(
             _ => Results.NoContent(),
             errors => ToProblem(errors));
@@ -70,10 +71,35 @@ public static class ApiResults
     /// <param name="result">The ErrorOr result.</param>
     /// <param name="location">Optional location for the status endpoint.</param>
     /// <returns>An IResult representing the response.</returns>
-    public static IResult Accepted<T>(ErrorOr<T> result, string? location = null) =>
+    public static IResult Accepted<T>(VsaResult<T> result, string? location = null) =>
         result.Match(
             value => Results.Accepted(location, value),
             errors => ToProblem(errors));
+
+    /// <summary>
+    /// Converts an IActionResult to an IResult for Minimal API compatibility.
+    /// Useful when feature handlers return IActionResult values that need to be
+    /// converted to Minimal API IResult types.
+    /// </summary>
+    /// <param name="action">The IActionResult to convert.</param>
+    /// <returns>An equivalent IResult for Minimal APIs.</returns>
+    public static IResult FromActionResult(IActionResult action) => action switch
+    {
+        OkObjectResult ok => Results.Ok(ok.Value),
+        CreatedResult created => Results.Created(created.Location ?? string.Empty, created.Value),
+        NoContentResult => Results.NoContent(),
+        NotFoundResult => Results.NotFound(),
+        NotFoundObjectResult notFound => Results.NotFound(notFound.Value),
+        BadRequestResult => Results.BadRequest(),
+        BadRequestObjectResult bad => Results.BadRequest(bad.Value),
+        UnauthorizedResult => Results.Unauthorized(),
+        UnauthorizedObjectResult unauth => Results.Unauthorized(),
+        ForbidResult => Results.Forbid(),
+        StatusCodeResult status => Results.StatusCode(status.StatusCode),
+        ObjectResult obj => Results.Json(obj.Value, statusCode: obj.StatusCode ?? StatusCodes.Status200OK),
+        JsonResult json => Results.Json(json.Value),
+        _ => Results.Ok(action),
+    };
 
     /// <summary>
     /// Converts a list of errors to a Problem Details result.

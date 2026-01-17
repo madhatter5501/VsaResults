@@ -31,7 +31,7 @@ public sealed class ConcurrencyLimitFilter<TContext> : IFilter<TContext>
     public int Limit => _limit;
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> SendAsync(
+    public async Task<VsaResult<Unit>> SendAsync(
         TContext context,
         IPipe<TContext> next,
         CancellationToken ct = default)

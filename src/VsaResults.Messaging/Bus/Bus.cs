@@ -35,7 +35,7 @@ internal sealed class Bus : IBus
     public EndpointAddress Address { get; }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> StartAsync(CancellationToken ct = default)
+    public async Task<VsaResult<Unit>> StartAsync(CancellationToken ct = default)
     {
         if (_isStarted)
         {
@@ -64,7 +64,7 @@ internal sealed class Bus : IBus
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> StopAsync(CancellationToken ct = default)
+    public async Task<VsaResult<Unit>> StopAsync(CancellationToken ct = default)
     {
         if (!_isStarted)
         {
@@ -81,14 +81,14 @@ internal sealed class Bus : IBus
     }
 
     /// <inheritdoc />
-    public Task<ErrorOr<Unit>> PublishAsync<TMessage>(
+    public Task<VsaResult<Unit>> PublishAsync<TMessage>(
         TMessage message,
         CancellationToken ct = default)
         where TMessage : class, IEvent
         => PublishAsync(message, _ => { }, ct);
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> PublishAsync<TMessage>(
+    public async Task<VsaResult<Unit>> PublishAsync<TMessage>(
         TMessage message,
         Action<MessageHeaders> configureHeaders,
         CancellationToken ct = default)
@@ -134,7 +134,7 @@ internal sealed class Bus : IBus
     }
 
     /// <inheritdoc />
-    public Task<ErrorOr<Unit>> PublishAsync<TMessage>(
+    public Task<VsaResult<Unit>> PublishAsync<TMessage>(
         TMessage message,
         CorrelationId correlationId,
         CancellationToken ct = default)
@@ -144,7 +144,7 @@ internal sealed class Bus : IBus
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<ISendEndpoint>> GetSendEndpointAsync(
+    public async Task<VsaResult<ISendEndpoint>> GetSendEndpointAsync(
         EndpointAddress address,
         CancellationToken ct = default)
     {
@@ -152,7 +152,7 @@ internal sealed class Bus : IBus
 
         if (_sendEndpoints.TryGetValue(key, out var cached))
         {
-            return ToErrorOr(cached);
+            return cached.ToResult<ISendEndpoint>();
         }
 
         var transportResult = await _transport.GetSendTransportAsync(address, ct);
@@ -173,12 +173,6 @@ internal sealed class Bus : IBus
     internal void AddReceiveEndpoint(IReceiveEndpoint endpoint)
     {
         _endpoints.TryAdd(endpoint.Name, endpoint);
-    }
-
-    private static ErrorOr<T> ToErrorOr<T>(T value)
-    {
-        ErrorOr<T> result = value;
-        return result;
     }
 }
 
@@ -205,14 +199,14 @@ internal sealed class SendEndpoint : ISendEndpoint
     public EndpointAddress Address => _transport.Address;
 
     /// <inheritdoc />
-    public Task<ErrorOr<Unit>> SendAsync<TMessage>(
+    public Task<VsaResult<Unit>> SendAsync<TMessage>(
         TMessage message,
         CancellationToken ct = default)
         where TMessage : class, ICommand
         => SendAsync(message, _ => { }, ct);
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> SendAsync<TMessage>(
+    public async Task<VsaResult<Unit>> SendAsync<TMessage>(
         TMessage message,
         Action<MessageHeaders> configureHeaders,
         CancellationToken ct = default)
@@ -254,7 +248,7 @@ internal sealed class SendEndpoint : ISendEndpoint
     }
 
     /// <inheritdoc />
-    public Task<ErrorOr<Unit>> SendAsync<TMessage>(
+    public Task<VsaResult<Unit>> SendAsync<TMessage>(
         TMessage message,
         CorrelationId correlationId,
         CancellationToken ct = default)

@@ -20,7 +20,7 @@ public sealed class TimeoutFilter<TContext> : IFilter<TContext>
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> SendAsync(
+    public async Task<VsaResult<Unit>> SendAsync(
         TContext context,
         IPipe<TContext> next,
         CancellationToken ct = default)

@@ -16,7 +16,7 @@ public interface ITransport : IAsyncDisposable
     /// <param name="configure">Configuration callback.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The receive endpoint or an error.</returns>
-    Task<ErrorOr<IReceiveEndpoint>> CreateReceiveEndpointAsync(
+    Task<VsaResult<IReceiveEndpoint>> CreateReceiveEndpointAsync(
         EndpointAddress address,
         Action<IReceiveEndpointConfigurator> configure,
         CancellationToken ct = default);
@@ -27,7 +27,7 @@ public interface ITransport : IAsyncDisposable
     /// <param name="address">The destination address.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The send transport or an error.</returns>
-    Task<ErrorOr<ISendTransport>> GetSendTransportAsync(
+    Task<VsaResult<ISendTransport>> GetSendTransportAsync(
         EndpointAddress address,
         CancellationToken ct = default);
 
@@ -36,6 +36,6 @@ public interface ITransport : IAsyncDisposable
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The publish transport or an error.</returns>
-    Task<ErrorOr<IPublishTransport>> GetPublishTransportAsync(
+    Task<VsaResult<IPublishTransport>> GetPublishTransportAsync(
         CancellationToken ct = default);
 }

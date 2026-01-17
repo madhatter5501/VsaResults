@@ -1,7 +1,7 @@
 namespace VsaResults.Messaging;
 
 /// <summary>
-/// Filter that converts unhandled exceptions to ErrorOr errors.
+/// Filter that converts unhandled exceptions to VsaResult errors.
 /// Ensures the pipeline returns errors instead of throwing exceptions.
 /// </summary>
 /// <typeparam name="TContext">The context type.</typeparam>
@@ -20,7 +20,7 @@ public sealed class ExceptionFilter<TContext> : IFilter<TContext>
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> SendAsync(
+    public async Task<VsaResult<Unit>> SendAsync(
         TContext context,
         IPipe<TContext> next,
         CancellationToken ct = default)

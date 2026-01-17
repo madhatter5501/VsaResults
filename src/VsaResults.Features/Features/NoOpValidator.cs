@@ -21,6 +21,6 @@ public sealed class NoOpValidator<TRequest> : IFeatureValidator<TRequest>
     /// <param name="request">The request to validate.</param>
     /// <param name="ct">The cancellation token.</param>
     /// <returns>The request wrapped in an ErrorOr.</returns>
-    public Task<ErrorOr<TRequest>> ValidateAsync(TRequest request, CancellationToken ct = default)
-        => Task.FromResult(request.ToErrorOr());
+    public Task<VsaResult<TRequest>> ValidateAsync(TRequest request, CancellationToken ct = default)
+        => Task.FromResult(request.ToResult());
 }

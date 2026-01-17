@@ -41,7 +41,7 @@ public interface IBatchConsumer<TMessage> : IConsumer
     /// <param name="context">The batch consume context.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    Task<ErrorOr<Unit>> ConsumeAsync(
+    Task<VsaResult<Unit>> ConsumeAsync(
         BatchConsumeContext<TMessage> context,
         CancellationToken ct = default);
 }
@@ -114,7 +114,7 @@ public sealed class BatchConsumeContext<TMessage>
     /// <param name="event">The event to publish.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    public Task<ErrorOr<Unit>> PublishAsync<TEvent>(
+    public Task<VsaResult<Unit>> PublishAsync<TEvent>(
         TEvent @event,
         CancellationToken ct = default)
         where TEvent : class, IEvent
@@ -128,7 +128,7 @@ public sealed class BatchConsumeContext<TMessage>
     /// <param name="command">The command to send.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    public async Task<ErrorOr<Unit>> SendAsync<TCommand>(
+    public async Task<VsaResult<Unit>> SendAsync<TCommand>(
         EndpointAddress address,
         TCommand command,
         CancellationToken ct = default)

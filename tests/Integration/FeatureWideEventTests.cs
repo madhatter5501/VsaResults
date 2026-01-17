@@ -342,7 +342,7 @@ public class FeatureWideEventBuilderTests
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithErrorOrContext_ShouldMergeContext()
+    public void FeatureWideEventBuilder_WithResultContext_ShouldMergeContext()
     {
         // Arrange
         var builder = FeatureWideEvent.Start("ErrorOrContextTest", "Mutation");
@@ -354,7 +354,7 @@ public class FeatureWideEventBuilderTests
         };
 
         // Act
-        builder.WithErrorOrContext(context);
+        builder.WithResultContext(context);
         var wideEvent = builder.Success();
 
         // Assert

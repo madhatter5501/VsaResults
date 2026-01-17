@@ -15,7 +15,7 @@ public interface ISendTransport
     /// <param name="envelope">The message envelope.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or an error.</returns>
-    Task<ErrorOr<Unit>> SendAsync<TMessage>(
+    Task<VsaResult<Unit>> SendAsync<TMessage>(
         MessageEnvelope envelope,
         CancellationToken ct = default)
         where TMessage : class, IMessage;

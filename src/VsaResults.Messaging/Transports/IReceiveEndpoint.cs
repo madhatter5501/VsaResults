@@ -19,14 +19,14 @@ public interface IReceiveEndpoint : IAsyncDisposable
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or an error.</returns>
-    Task<ErrorOr<Unit>> StartAsync(CancellationToken ct = default);
+    Task<VsaResult<Unit>> StartAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Stops receiving messages.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or an error.</returns>
-    Task<ErrorOr<Unit>> StopAsync(CancellationToken ct = default);
+    Task<VsaResult<Unit>> StopAsync(CancellationToken ct = default);
 }
 
 /// <summary>
@@ -57,7 +57,7 @@ public interface IReceiveEndpointConfigurator
     /// </summary>
     /// <typeparam name="TMessage">The message type.</typeparam>
     /// <param name="handler">The message handler.</param>
-    void Handler<TMessage>(Func<ConsumeContext<TMessage>, CancellationToken, Task<ErrorOr<Unit>>> handler)
+    void Handler<TMessage>(Func<ConsumeContext<TMessage>, CancellationToken, Task<VsaResult<Unit>>> handler)
         where TMessage : class, IMessage;
 
     /// <summary>

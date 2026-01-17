@@ -36,11 +36,11 @@ internal sealed class InMemoryReceiveEndpoint : IReceiveEndpoint
     public bool IsRunning => _cts is not null && !_cts.IsCancellationRequested;
 
     /// <inheritdoc />
-    public Task<ErrorOr<Unit>> StartAsync(CancellationToken ct = default)
+    public Task<VsaResult<Unit>> StartAsync(CancellationToken ct = default)
     {
         if (IsRunning)
         {
-            return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+            return Task.FromResult<VsaResult<Unit>>(Unit.Value);
         }
 
         _cts = new CancellationTokenSource();
@@ -52,11 +52,11 @@ internal sealed class InMemoryReceiveEndpoint : IReceiveEndpoint
             _workerTasks.Add(ProcessMessagesAsync(_cts.Token));
         }
 
-        return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+        return Task.FromResult<VsaResult<Unit>>(Unit.Value);
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> StopAsync(CancellationToken ct = default)
+    public async Task<VsaResult<Unit>> StopAsync(CancellationToken ct = default)
     {
         if (_cts is null)
         {
@@ -184,7 +184,7 @@ internal sealed class InMemoryReceiveEndpointConfigurator : IReceiveEndpointConf
     }
 
     /// <inheritdoc />
-    public void Handler<TMessage>(Func<ConsumeContext<TMessage>, CancellationToken, Task<ErrorOr<Unit>>> handler)
+    public void Handler<TMessage>(Func<ConsumeContext<TMessage>, CancellationToken, Task<VsaResult<Unit>>> handler)
         where TMessage : class, IMessage
     {
         var registration = new HandlerRegistration<TMessage>(handler, _serviceProvider);
@@ -360,12 +360,12 @@ internal class ConsumerRegistration
 internal sealed class HandlerRegistration<TMessage> : ConsumerRegistration
     where TMessage : class, IMessage
 {
-    private readonly Func<ConsumeContext<TMessage>, CancellationToken, Task<ErrorOr<Unit>>> _handler;
+    private readonly Func<ConsumeContext<TMessage>, CancellationToken, Task<VsaResult<Unit>>> _handler;
     private readonly MessageTypeResolver _typeResolver = new();
     private readonly HashSet<string> _handlerMessageTypes;
 
     public HandlerRegistration(
-        Func<ConsumeContext<TMessage>, CancellationToken, Task<ErrorOr<Unit>>> handler,
+        Func<ConsumeContext<TMessage>, CancellationToken, Task<VsaResult<Unit>>> handler,
         IServiceProvider serviceProvider)
         : base(typeof(HandlerRegistration<TMessage>), serviceProvider)
     {

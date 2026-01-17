@@ -17,7 +17,7 @@ internal sealed class InMemorySendTransport : ISendTransport
     public EndpointAddress Address { get; }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> SendAsync<TMessage>(
+    public async Task<VsaResult<Unit>> SendAsync<TMessage>(
         MessageEnvelope envelope,
         CancellationToken ct = default)
         where TMessage : class, IMessage

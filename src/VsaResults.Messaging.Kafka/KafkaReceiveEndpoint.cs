@@ -52,11 +52,11 @@ public class KafkaReceiveEndpoint : IReceiveEndpoint
     public bool IsRunning => _isRunning;
 
     /// <inheritdoc />
-    public Task<ErrorOr<Unit>> StartAsync(CancellationToken ct = default)
+    public Task<VsaResult<Unit>> StartAsync(CancellationToken ct = default)
     {
         if (_isRunning)
         {
-            return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+            return Task.FromResult<VsaResult<Unit>>(Unit.Value);
         }
 
         try
@@ -116,17 +116,17 @@ public class KafkaReceiveEndpoint : IReceiveEndpoint
                 Name,
                 _configurator.Consumers.Count);
 
-            return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+            return Task.FromResult<VsaResult<Unit>>(Unit.Value);
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to start Kafka endpoint '{EndpointName}'", Name);
-            return Task.FromResult<ErrorOr<Unit>>(MessagingErrors.TransportError($"Failed to start endpoint: {ex.Message}"));
+            return Task.FromResult<VsaResult<Unit>>(MessagingErrors.TransportError($"Failed to start endpoint: {ex.Message}"));
         }
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> StopAsync(CancellationToken ct = default)
+    public async Task<VsaResult<Unit>> StopAsync(CancellationToken ct = default)
     {
         if (!_isRunning)
         {
@@ -464,7 +464,7 @@ internal sealed class KafkaReceiveEndpointConfigurator : IReceiveEndpointConfigu
     }
 
     /// <inheritdoc />
-    public void Handler<TMessage>(Func<ConsumeContext<TMessage>, CancellationToken, Task<ErrorOr<Unit>>> handler)
+    public void Handler<TMessage>(Func<ConsumeContext<TMessage>, CancellationToken, Task<VsaResult<Unit>>> handler)
         where TMessage : class, IMessage
     {
         var registration = new HandlerRegistration<TMessage>(handler, _serviceProvider);

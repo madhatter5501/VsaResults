@@ -44,7 +44,7 @@ public static class FeatureHandler
     /// <typeparam name="TResult">The result type.</typeparam>
     /// <param name="resultMapper">Function to map the successful result to an IResult.</param>
     /// <returns>A delegate that can be used with MapGet/MapPost.</returns>
-    public static Delegate Query<TRequest, TResult>(Func<ErrorOr<TResult>, IResult> resultMapper)
+    public static Delegate Query<TRequest, TResult>(Func<VsaResult<TResult>, IResult> resultMapper)
         where TRequest : notnull =>
         async (
             [AsParameters] TRequest request,
@@ -117,7 +117,7 @@ public static class FeatureHandler
     /// <typeparam name="TResult">The result type.</typeparam>
     /// <param name="resultMapper">Function to map the successful result to an IResult.</param>
     /// <returns>A delegate that can be used with MapPost/MapPut/MapDelete.</returns>
-    public static Delegate Mutation<TRequest, TResult>(Func<ErrorOr<TResult>, IResult> resultMapper)
+    public static Delegate Mutation<TRequest, TResult>(Func<VsaResult<TResult>, IResult> resultMapper)
         where TRequest : notnull =>
         async (
             [AsParameters] TRequest request,

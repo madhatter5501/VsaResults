@@ -15,7 +15,7 @@ public class ApiResultsTests
     public void Ok_WhenSuccess_ShouldReturnOkResult()
     {
         // Arrange
-        ErrorOr<string> result = "test value";
+        VsaResult<string> result = "test value";
 
         // Act
         var httpResult = ApiResults.Ok(result);
@@ -31,7 +31,7 @@ public class ApiResultsTests
     public void Ok_WhenError_ShouldReturnProblemResult()
     {
         // Arrange
-        ErrorOr<string> result = Error.NotFound("User.NotFound", "User was not found");
+        VsaResult<string> result = Error.NotFound("User.NotFound", "User was not found");
 
         // Act
         var httpResult = ApiResults.Ok(result);
@@ -46,7 +46,7 @@ public class ApiResultsTests
     public void Created_WithStaticLocation_WhenSuccess_ShouldReturnCreatedResult()
     {
         // Arrange
-        ErrorOr<int> result = 42;
+        VsaResult<int> result = 42;
 
         // Act
         var httpResult = ApiResults.Created(result, "/api/items/42");
@@ -63,7 +63,7 @@ public class ApiResultsTests
     public void Created_WithDynamicLocation_WhenSuccess_ShouldReturnCreatedResult()
     {
         // Arrange
-        ErrorOr<int> result = 123;
+        VsaResult<int> result = 123;
 
         // Act
         var httpResult = ApiResults.Created(result, value => $"/api/items/{value}");
@@ -78,7 +78,7 @@ public class ApiResultsTests
     public void Created_WhenError_ShouldReturnProblemResult()
     {
         // Arrange
-        ErrorOr<int> result = Error.Validation("Id.Invalid", "Invalid ID");
+        VsaResult<int> result = Error.Validation("Id.Invalid", "Invalid ID");
 
         // Act
         var httpResult = ApiResults.Created(result, "/api/items/0");
@@ -93,7 +93,7 @@ public class ApiResultsTests
     public void NoContent_WithSuccess_WhenSuccess_ShouldReturnNoContentResult()
     {
         // Arrange
-        ErrorOr<Success> result = Result.Success;
+        VsaResult<Success> result = Result.Success;
 
         // Act
         var httpResult = ApiResults.NoContent(result);
@@ -106,7 +106,7 @@ public class ApiResultsTests
     public void NoContent_WithUnit_WhenSuccess_ShouldReturnNoContentResult()
     {
         // Arrange
-        ErrorOr<Unit> result = Unit.Value;
+        VsaResult<Unit> result = Unit.Value;
 
         // Act
         var httpResult = ApiResults.NoContent(result);
@@ -119,7 +119,7 @@ public class ApiResultsTests
     public void NoContent_WhenError_ShouldReturnProblemResult()
     {
         // Arrange
-        ErrorOr<Success> result = Error.Unauthorized();
+        VsaResult<Success> result = Error.Unauthorized();
 
         // Act
         var httpResult = ApiResults.NoContent(result);
@@ -134,7 +134,7 @@ public class ApiResultsTests
     public void Accepted_WhenSuccess_ShouldReturnAcceptedResult()
     {
         // Arrange
-        ErrorOr<string> result = "job-123";
+        VsaResult<string> result = "job-123";
 
         // Act
         var httpResult = ApiResults.Accepted(result, "/api/jobs/123/status");

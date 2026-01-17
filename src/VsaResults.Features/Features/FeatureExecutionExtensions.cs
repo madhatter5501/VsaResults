@@ -18,7 +18,7 @@ public static class FeatureExecutionExtensions
     /// <param name="emitter">Optional wide event emitter. If null, no event is emitted.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The result or errors from execution.</returns>
-    public static async Task<ErrorOr<TResult>> ExecuteAsync<TRequest, TResult>(
+    public static async Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
         this IMutationFeature<TRequest, TResult> feature,
         TRequest request,
         IWideEventEmitter? emitter = null,
@@ -47,9 +47,9 @@ public static class FeatureExecutionExtensions
 
             if (validated.IsError)
             {
-                wideEvent.WithErrorOrContext(validated.Context);
+                wideEvent.WithResultContext(validated.Context);
                 EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).ValidationFailure(validated.Errors));
-                return new ErrorOr<TResult>(validated.Errors, validated._context);
+                return new VsaResult<TResult>(validated.Errors, validated._context);
             }
 
             // Requirements stage
@@ -60,9 +60,9 @@ public static class FeatureExecutionExtensions
 
             if (enforced.IsError)
             {
-                wideEvent.WithErrorOrContext(enforced.Context);
+                wideEvent.WithResultContext(enforced.Context);
                 EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).RequirementsFailure(enforced.Errors));
-                return new ErrorOr<TResult>(enforced.Errors, enforced._context);
+                return new VsaResult<TResult>(enforced.Errors, enforced._context);
             }
 
             context = enforced.Value;
@@ -75,7 +75,7 @@ public static class FeatureExecutionExtensions
 
             if (result.IsError)
             {
-                wideEvent.WithErrorOrContext(result.Context);
+                wideEvent.WithResultContext(result.Context);
                 EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).ExecutionFailure(result.Errors));
                 return result;
             }
@@ -88,12 +88,12 @@ public static class FeatureExecutionExtensions
 
             if (effects.IsError)
             {
-                wideEvent.WithErrorOrContext(effects.Context);
+                wideEvent.WithResultContext(effects.Context);
                 EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).SideEffectsFailure(effects.Errors));
-                return new ErrorOr<TResult>(effects.Errors, effects._context);
+                return new VsaResult<TResult>(effects.Errors, effects._context);
             }
 
-            wideEvent.WithErrorOrContext(result.Context);
+            wideEvent.WithResultContext(result.Context);
             EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).Success());
             return result;
         }
@@ -115,7 +115,7 @@ public static class FeatureExecutionExtensions
     /// <param name="emitter">Optional wide event emitter. If null, no event is emitted.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The result or errors from execution.</returns>
-    public static async Task<ErrorOr<TResult>> ExecuteAsync<TRequest, TResult>(
+    public static async Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
         this IQueryFeature<TRequest, TResult> feature,
         TRequest request,
         IWideEventEmitter? emitter = null,
@@ -142,9 +142,9 @@ public static class FeatureExecutionExtensions
 
             if (validated.IsError)
             {
-                wideEvent.WithErrorOrContext(validated.Context);
+                wideEvent.WithResultContext(validated.Context);
                 EmitWideEvent(emitter, wideEvent.ValidationFailure(validated.Errors));
-                return new ErrorOr<TResult>(validated.Errors, validated._context);
+                return new VsaResult<TResult>(validated.Errors, validated._context);
             }
 
             // Execution stage
@@ -155,12 +155,12 @@ public static class FeatureExecutionExtensions
 
             if (result.IsError)
             {
-                wideEvent.WithErrorOrContext(result.Context);
+                wideEvent.WithResultContext(result.Context);
                 EmitWideEvent(emitter, wideEvent.ExecutionFailure(result.Errors));
                 return result;
             }
 
-            wideEvent.WithErrorOrContext(result.Context);
+            wideEvent.WithResultContext(result.Context);
             EmitWideEvent(emitter, wideEvent.Success());
             return result;
         }
@@ -182,7 +182,7 @@ public static class FeatureExecutionExtensions
     /// <param name="emitter">The unified wide event emitter.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The result or errors from execution.</returns>
-    public static async Task<ErrorOr<TResult>> ExecuteAsync<TRequest, TResult>(
+    public static async Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
         this IMutationFeature<TRequest, TResult> feature,
         TRequest request,
         IUnifiedWideEventEmitter emitter,
@@ -211,9 +211,9 @@ public static class FeatureExecutionExtensions
 
             if (validated.IsError)
             {
-                builder.WithErrorOrContext(validated.Context);
+                builder.WithResultContext(validated.Context);
                 emitter.Emit(builder.WithFeatureContext(context).ValidationFailure(validated.Errors));
-                return new ErrorOr<TResult>(validated.Errors, validated._context);
+                return new VsaResult<TResult>(validated.Errors, validated._context);
             }
 
             // Requirements stage
@@ -224,9 +224,9 @@ public static class FeatureExecutionExtensions
 
             if (enforced.IsError)
             {
-                builder.WithErrorOrContext(enforced.Context);
+                builder.WithResultContext(enforced.Context);
                 emitter.Emit(builder.WithFeatureContext(context).RequirementsFailure(enforced.Errors));
-                return new ErrorOr<TResult>(enforced.Errors, enforced._context);
+                return new VsaResult<TResult>(enforced.Errors, enforced._context);
             }
 
             context = enforced.Value;
@@ -239,7 +239,7 @@ public static class FeatureExecutionExtensions
 
             if (result.IsError)
             {
-                builder.WithErrorOrContext(result.Context);
+                builder.WithResultContext(result.Context);
                 emitter.Emit(builder.WithFeatureContext(context).ExecutionFailure(result.Errors));
                 return result;
             }
@@ -252,12 +252,12 @@ public static class FeatureExecutionExtensions
 
             if (effects.IsError)
             {
-                builder.WithErrorOrContext(effects.Context);
+                builder.WithResultContext(effects.Context);
                 emitter.Emit(builder.WithFeatureContext(context).SideEffectsFailure(effects.Errors));
-                return new ErrorOr<TResult>(effects.Errors, effects._context);
+                return new VsaResult<TResult>(effects.Errors, effects._context);
             }
 
-            builder.WithErrorOrContext(result.Context);
+            builder.WithResultContext(result.Context);
             emitter.Emit(builder.WithFeatureContext(context).Success());
             return result;
         }
@@ -279,7 +279,7 @@ public static class FeatureExecutionExtensions
     /// <param name="emitter">The unified wide event emitter.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The result or errors from execution.</returns>
-    public static async Task<ErrorOr<TResult>> ExecuteAsync<TRequest, TResult>(
+    public static async Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
         this IQueryFeature<TRequest, TResult> feature,
         TRequest request,
         IUnifiedWideEventEmitter emitter,
@@ -306,9 +306,9 @@ public static class FeatureExecutionExtensions
 
             if (validated.IsError)
             {
-                builder.WithErrorOrContext(validated.Context);
+                builder.WithResultContext(validated.Context);
                 emitter.Emit(builder.ValidationFailure(validated.Errors));
-                return new ErrorOr<TResult>(validated.Errors, validated._context);
+                return new VsaResult<TResult>(validated.Errors, validated._context);
             }
 
             // Execution stage
@@ -319,12 +319,12 @@ public static class FeatureExecutionExtensions
 
             if (result.IsError)
             {
-                builder.WithErrorOrContext(result.Context);
+                builder.WithResultContext(result.Context);
                 emitter.Emit(builder.ExecutionFailure(result.Errors));
                 return result;
             }
 
-            builder.WithErrorOrContext(result.Context);
+            builder.WithResultContext(result.Context);
             emitter.Emit(builder.Success());
             return result;
         }

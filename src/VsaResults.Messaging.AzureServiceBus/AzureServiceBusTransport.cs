@@ -54,7 +54,7 @@ public class AzureServiceBusTransport : ITransport
     internal ServiceBusAdministrationClient? AdminClient => _adminClient;
 
     /// <inheritdoc />
-    public async Task<ErrorOr<IReceiveEndpoint>> CreateReceiveEndpointAsync(
+    public async Task<VsaResult<IReceiveEndpoint>> CreateReceiveEndpointAsync(
         EndpointAddress address,
         Action<IReceiveEndpointConfigurator> configure,
         CancellationToken ct = default)
@@ -82,12 +82,12 @@ public class AzureServiceBusTransport : ITransport
 
         _receiveEndpoints.Add(endpoint);
 
-        ErrorOr<IReceiveEndpoint> result = endpoint;
+        VsaResult<IReceiveEndpoint> result = endpoint;
         return result;
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<ISendTransport>> GetSendTransportAsync(
+    public async Task<VsaResult<ISendTransport>> GetSendTransportAsync(
         EndpointAddress address,
         CancellationToken ct = default)
     {
@@ -106,12 +106,12 @@ public class AzureServiceBusTransport : ITransport
         }
 
         var transport = new AzureServiceBusSendTransport(address, sender.Value, _options, _logger);
-        ErrorOr<ISendTransport> result = transport;
+        VsaResult<ISendTransport> result = transport;
         return result;
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<IPublishTransport>> GetPublishTransportAsync(CancellationToken ct = default)
+    public async Task<VsaResult<IPublishTransport>> GetPublishTransportAsync(CancellationToken ct = default)
     {
         ThrowIfDisposed();
 
@@ -122,14 +122,14 @@ public class AzureServiceBusTransport : ITransport
         }
 
         var transport = new AzureServiceBusPublishTransport(this, _options, _logger);
-        ErrorOr<IPublishTransport> result = transport;
+        VsaResult<IPublishTransport> result = transport;
         return result;
     }
 
     /// <summary>
     /// Gets or creates a sender for the specified queue or topic.
     /// </summary>
-    internal async Task<ErrorOr<ServiceBusSender>> GetOrCreateSenderAsync(
+    internal async Task<VsaResult<ServiceBusSender>> GetOrCreateSenderAsync(
         string entityName,
         bool isQueue,
         CancellationToken ct = default)
@@ -173,7 +173,7 @@ public class AzureServiceBusTransport : ITransport
     /// <summary>
     /// Ensures the Service Bus client is initialized.
     /// </summary>
-    internal async Task<ErrorOr<Unit>> EnsureClientAsync(CancellationToken ct = default)
+    internal async Task<VsaResult<Unit>> EnsureClientAsync(CancellationToken ct = default)
     {
         if (_client is not null)
         {

@@ -26,7 +26,7 @@ public class OrderCreatedConsumer : IConsumer<OrderCreated>
         _publishEndpoint = publishEndpoint;
     }
 
-    public async Task<ErrorOr<Unit>> ConsumeAsync(
+    public async Task<VsaResult<Unit>> ConsumeAsync(
         ConsumeContext<OrderCreated> context,
         CancellationToken ct = default)
     {
@@ -48,7 +48,7 @@ public class OrderCreatedConsumer : IConsumer<OrderCreated>
 
 public class OrderShippedConsumer : IConsumer<OrderShipped>
 {
-    public Task<ErrorOr<Unit>> ConsumeAsync(
+    public Task<VsaResult<Unit>> ConsumeAsync(
         ConsumeContext<OrderShipped> context,
         CancellationToken ct = default)
     {
@@ -59,13 +59,13 @@ public class OrderShippedConsumer : IConsumer<OrderShipped>
             .AddContext("shipping_processed", true)
             .AddContext("parent_initiator_id", context.Headers.InitiatorId);
 
-        return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+        return Task.FromResult<VsaResult<Unit>>(Unit.Value);
     }
 }
 
 public class ProcessPaymentConsumer : IConsumer<ProcessPayment>
 {
-    public Task<ErrorOr<Unit>> ConsumeAsync(
+    public Task<VsaResult<Unit>> ConsumeAsync(
         ConsumeContext<ProcessPayment> context,
         CancellationToken ct = default)
     {
@@ -76,25 +76,25 @@ public class ProcessPaymentConsumer : IConsumer<ProcessPayment>
         // Simulate payment validation
         if (context.Message.Amount <= 0)
         {
-            return Task.FromResult<ErrorOr<Unit>>(Error.Validation(
+            return Task.FromResult<VsaResult<Unit>>(Error.Validation(
                 "Payment.InvalidAmount",
                 "Payment amount must be positive"));
         }
 
-        return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+        return Task.FromResult<VsaResult<Unit>>(Unit.Value);
     }
 }
 
 public class FailingConsumer : IConsumer<SendNotification>
 {
-    public Task<ErrorOr<Unit>> ConsumeAsync(
+    public Task<VsaResult<Unit>> ConsumeAsync(
         ConsumeContext<SendNotification> context,
         CancellationToken ct = default)
     {
         context.AddContext("notification_user_id", context.Message.UserId);
 
         // Always fail for testing error scenarios
-        return Task.FromResult<ErrorOr<Unit>>(Error.Failure(
+        return Task.FromResult<VsaResult<Unit>>(Error.Failure(
             "Notification.Failed",
             "Failed to send notification"));
     }
@@ -716,7 +716,7 @@ public class ContextPropagationIntegrationTests : IAsyncLifetime
                     }
 
                     _followUpReceived.TrySetResult(context.Envelope);
-                    return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+                    return Task.FromResult<VsaResult<Unit>>(Unit.Value);
                 });
             });
         });
@@ -828,7 +828,7 @@ public class ConsumeContextTests : IAsyncLifetime
                 ep.Handler<OrderCreated>((context, ct) =>
                 {
                     _capturedContext = context;
-                    return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+                    return Task.FromResult<VsaResult<Unit>>(Unit.Value);
                 });
             });
         });

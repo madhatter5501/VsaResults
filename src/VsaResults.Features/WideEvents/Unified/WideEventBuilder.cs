@@ -240,7 +240,7 @@ public sealed partial class WideEventBuilder
     /// </summary>
     /// <param name="context">The context dictionary to merge.</param>
     /// <returns>This builder for method chaining.</returns>
-    public WideEventBuilder WithErrorOrContext(IReadOnlyDictionary<string, object> context)
+    public WideEventBuilder WithResultContext(IReadOnlyDictionary<string, object> context)
     {
         foreach (var (key, value) in context)
         {

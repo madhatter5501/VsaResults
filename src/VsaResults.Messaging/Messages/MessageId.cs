@@ -26,7 +26,7 @@ public readonly record struct MessageId
     /// </summary>
     /// <param name="value">The string to parse.</param>
     /// <returns>The parsed message ID or an error.</returns>
-    public static ErrorOr<MessageId> Parse(string value) =>
+    public static VsaResult<MessageId> Parse(string value) =>
         Guid.TryParse(value, out var guid)
             ? new MessageId(guid)
             : MessagingErrors.InvalidMessageId(value);

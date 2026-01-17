@@ -13,41 +13,41 @@ public sealed class InMemorySagaRepository<TState> : ISagaRepository<TState>
     private readonly ConcurrentDictionary<Guid, TState> _sagas = new();
 
     /// <inheritdoc />
-    public Task<ErrorOr<TState?>> GetAsync(Guid correlationId, CancellationToken ct = default)
+    public Task<VsaResult<TState?>> GetAsync(Guid correlationId, CancellationToken ct = default)
     {
         _sagas.TryGetValue(correlationId, out var state);
-        ErrorOr<TState?> result = state;
+        VsaResult<TState?> result = state;
         return Task.FromResult(result);
     }
 
     /// <inheritdoc />
-    public Task<ErrorOr<Unit>> SaveAsync(TState state, CancellationToken ct = default)
+    public Task<VsaResult<Unit>> SaveAsync(TState state, CancellationToken ct = default)
     {
         _sagas.AddOrUpdate(
             state.CorrelationId,
             state,
             (_, _) => state);
 
-        ErrorOr<Unit> result = Unit.Value;
+        VsaResult<Unit> result = Unit.Value;
         return Task.FromResult(result);
     }
 
     /// <inheritdoc />
-    public Task<ErrorOr<Unit>> DeleteAsync(Guid correlationId, CancellationToken ct = default)
+    public Task<VsaResult<Unit>> DeleteAsync(Guid correlationId, CancellationToken ct = default)
     {
         _sagas.TryRemove(correlationId, out _);
-        ErrorOr<Unit> result = Unit.Value;
+        VsaResult<Unit> result = Unit.Value;
         return Task.FromResult(result);
     }
 
     /// <inheritdoc />
-    public Task<ErrorOr<IReadOnlyList<TState>>> QueryByStateAsync(string stateName, CancellationToken ct = default)
+    public Task<VsaResult<IReadOnlyList<TState>>> QueryByStateAsync(string stateName, CancellationToken ct = default)
     {
         var matching = _sagas.Values
             .Where(s => s.CurrentState == stateName)
             .ToList();
 
-        ErrorOr<IReadOnlyList<TState>> result = matching;
+        VsaResult<IReadOnlyList<TState>> result = matching;
         return Task.FromResult(result);
     }
 

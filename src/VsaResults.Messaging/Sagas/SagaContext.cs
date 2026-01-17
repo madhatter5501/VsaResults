@@ -102,7 +102,7 @@ public sealed class SagaContext<TState>
     /// Executes all pending publishes and sends.
     /// Called internally after successful saga execution.
     /// </summary>
-    internal async Task<ErrorOr<Unit>> FlushAsync(CancellationToken ct)
+    internal async Task<VsaResult<Unit>> FlushAsync(CancellationToken ct)
     {
         // Publish all pending events
         foreach (var @event in _pendingPublishes)
@@ -114,7 +114,7 @@ public sealed class SagaContext<TState>
             }
 
             var genericMethod = publishMethod.MakeGenericMethod(@event.GetType());
-            var task = (Task<ErrorOr<Unit>>)genericMethod.Invoke(_bus, new object[] { @event, ct })!;
+            var task = (Task<VsaResult<Unit>>)genericMethod.Invoke(_bus, new object[] { @event, ct })!;
             var result = await task;
 
             if (result.IsError)
@@ -139,7 +139,7 @@ public sealed class SagaContext<TState>
             }
 
             var genericMethod = sendMethod.MakeGenericMethod(command.GetType());
-            var task = (Task<ErrorOr<Unit>>)genericMethod.Invoke(endpointResult.Value, new object[] { command, ct })!;
+            var task = (Task<VsaResult<Unit>>)genericMethod.Invoke(endpointResult.Value, new object[] { command, ct })!;
             var result = await task;
 
             if (result.IsError)

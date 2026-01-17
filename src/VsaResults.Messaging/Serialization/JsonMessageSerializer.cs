@@ -32,7 +32,7 @@ public sealed class JsonMessageSerializer : IMessageSerializer
     public string ContentType => "application/json";
 
     /// <inheritdoc />
-    public ErrorOr<byte[]> Serialize<TMessage>(TMessage message)
+    public VsaResult<byte[]> Serialize<TMessage>(TMessage message)
         where TMessage : class
     {
         try
@@ -51,7 +51,7 @@ public sealed class JsonMessageSerializer : IMessageSerializer
     }
 
     /// <inheritdoc />
-    public ErrorOr<TMessage> Deserialize<TMessage>(byte[] data)
+    public VsaResult<TMessage> Deserialize<TMessage>(byte[] data)
         where TMessage : class
     {
         try
@@ -76,7 +76,7 @@ public sealed class JsonMessageSerializer : IMessageSerializer
     }
 
     /// <inheritdoc />
-    public ErrorOr<object> Deserialize(byte[] data, Type messageType)
+    public VsaResult<object> Deserialize(byte[] data, Type messageType)
     {
         try
         {

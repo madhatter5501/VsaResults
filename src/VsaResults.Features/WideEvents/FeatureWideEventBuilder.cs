@@ -153,7 +153,7 @@ public sealed partial class FeatureWideEventBuilder
     /// </summary>
     /// <param name="context">The context dictionary to merge.</param>
     /// <returns>This builder for method chaining.</returns>
-    public FeatureWideEventBuilder WithErrorOrContext(IReadOnlyDictionary<string, object> context)
+    public FeatureWideEventBuilder WithResultContext(IReadOnlyDictionary<string, object> context)
     {
         foreach (var (key, value) in context)
         {

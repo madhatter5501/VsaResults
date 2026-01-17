@@ -21,6 +21,6 @@ public sealed class NoOpSideEffects<TRequest> : IFeatureSideEffects<TRequest>
     /// <param name="context">The feature context.</param>
     /// <param name="ct">The cancellation token.</param>
     /// <returns>A successful Unit result.</returns>
-    public Task<ErrorOr<Unit>> ExecuteAsync(FeatureContext<TRequest> context, CancellationToken ct = default)
-        => Task.FromResult(Unit.Value.ToErrorOr());
+    public Task<VsaResult<Unit>> ExecuteAsync(FeatureContext<TRequest> context, CancellationToken ct = default)
+        => Task.FromResult(Unit.Value.ToResult());
 }

@@ -13,7 +13,7 @@ public interface IPublishEndpoint
     /// <param name="message">The event to publish.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    Task<ErrorOr<Unit>> PublishAsync<TMessage>(
+    Task<VsaResult<Unit>> PublishAsync<TMessage>(
         TMessage message,
         CancellationToken ct = default)
         where TMessage : class, IEvent;
@@ -26,7 +26,7 @@ public interface IPublishEndpoint
     /// <param name="configureHeaders">Header configuration callback.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    Task<ErrorOr<Unit>> PublishAsync<TMessage>(
+    Task<VsaResult<Unit>> PublishAsync<TMessage>(
         TMessage message,
         Action<MessageHeaders> configureHeaders,
         CancellationToken ct = default)
@@ -40,7 +40,7 @@ public interface IPublishEndpoint
     /// <param name="correlationId">The correlation ID.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    Task<ErrorOr<Unit>> PublishAsync<TMessage>(
+    Task<VsaResult<Unit>> PublishAsync<TMessage>(
         TMessage message,
         CorrelationId correlationId,
         CancellationToken ct = default)

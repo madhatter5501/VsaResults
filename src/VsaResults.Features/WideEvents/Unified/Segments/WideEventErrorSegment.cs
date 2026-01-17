@@ -47,7 +47,7 @@ public sealed class WideEventErrorSegment
     public string? ExceptionStackTrace { get; set; }
 
     /// <summary>
-    /// Creates an error segment from a list of ErrorOr errors.
+    /// Creates an error segment from a list of VsaResult errors.
     /// </summary>
     /// <param name="errors">The errors to capture.</param>
     /// <param name="failedAtStage">The stage where failure occurred.</param>

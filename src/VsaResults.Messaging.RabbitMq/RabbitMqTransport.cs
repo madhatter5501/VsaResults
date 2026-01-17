@@ -45,7 +45,7 @@ public class RabbitMqTransport : ITransport
     internal IConnection? Connection => _connection;
 
     /// <inheritdoc />
-    public async Task<ErrorOr<IReceiveEndpoint>> CreateReceiveEndpointAsync(
+    public async Task<VsaResult<IReceiveEndpoint>> CreateReceiveEndpointAsync(
         EndpointAddress address,
         Action<IReceiveEndpointConfigurator> configure,
         CancellationToken ct = default)
@@ -66,12 +66,12 @@ public class RabbitMqTransport : ITransport
 
         _receiveEndpoints.Add(endpoint);
 
-        ErrorOr<IReceiveEndpoint> result = endpoint;
+        VsaResult<IReceiveEndpoint> result = endpoint;
         return result;
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<ISendTransport>> GetSendTransportAsync(
+    public async Task<VsaResult<ISendTransport>> GetSendTransportAsync(
         EndpointAddress address,
         CancellationToken ct = default)
     {
@@ -90,12 +90,12 @@ public class RabbitMqTransport : ITransport
         }
 
         var transport = new RabbitMqSendTransport(address, channel.Value, _options, _serializer, _logger);
-        ErrorOr<ISendTransport> result = transport;
+        VsaResult<ISendTransport> result = transport;
         return result;
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<IPublishTransport>> GetPublishTransportAsync(CancellationToken ct = default)
+    public async Task<VsaResult<IPublishTransport>> GetPublishTransportAsync(CancellationToken ct = default)
     {
         ThrowIfDisposed();
 
@@ -118,14 +118,14 @@ public class RabbitMqTransport : ITransport
         }
 
         var transport = new RabbitMqPublishTransport(_publishChannel, _options, _serializer, _logger);
-        ErrorOr<IPublishTransport> result = transport;
+        VsaResult<IPublishTransport> result = transport;
         return result;
     }
 
     /// <summary>
     /// Creates a new channel from the connection.
     /// </summary>
-    internal async Task<ErrorOr<IChannel>> CreateChannelAsync(CancellationToken ct = default)
+    internal async Task<VsaResult<IChannel>> CreateChannelAsync(CancellationToken ct = default)
     {
         if (_connection is null)
         {
@@ -135,7 +135,7 @@ public class RabbitMqTransport : ITransport
         try
         {
             var channel = await _connection.CreateChannelAsync(cancellationToken: ct);
-            return ToErrorOr(channel);
+            return channel.ToResult<IChannel>();
         }
         catch (Exception ex)
         {
@@ -147,7 +147,7 @@ public class RabbitMqTransport : ITransport
     /// <summary>
     /// Ensures a connection to RabbitMQ is established.
     /// </summary>
-    internal async Task<ErrorOr<Unit>> EnsureConnectedAsync(CancellationToken ct = default)
+    internal async Task<VsaResult<Unit>> EnsureConnectedAsync(CancellationToken ct = default)
     {
         if (_connection is not null && _connection.IsOpen)
         {
@@ -229,9 +229,9 @@ public class RabbitMqTransport : ITransport
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(RabbitMqTransport));
     }
 
-    private static ErrorOr<T> ToErrorOr<T>(T value)
+    private static VsaResult<T> ToVsaResult<T>(T value)
     {
-        ErrorOr<T> result = value;
+        VsaResult<T> result = value;
         return result;
     }
 }

@@ -11,7 +11,7 @@ public class ActionResultExtensionsTests
     public void ToOkResult_WhenSuccess_ShouldReturnOkObjectResult()
     {
         // Arrange
-        ErrorOr<string> result = "test value";
+        VsaResult<string> result = "test value";
 
         // Act
         var actionResult = result.ToOkResult();
@@ -27,7 +27,7 @@ public class ActionResultExtensionsTests
     public void ToOkResult_WhenError_ShouldReturnProblemDetailsResult()
     {
         // Arrange
-        ErrorOr<string> result = Error.NotFound("User.NotFound", "User was not found");
+        VsaResult<string> result = Error.NotFound("User.NotFound", "User was not found");
 
         // Act
         var actionResult = result.ToOkResult();
@@ -43,7 +43,7 @@ public class ActionResultExtensionsTests
     public async Task ToOkResult_Async_WhenSuccess_ShouldReturnOkObjectResult()
     {
         // Arrange
-        Task<ErrorOr<string>> task = Task.FromResult<ErrorOr<string>>("async value");
+        Task<VsaResult<string>> task = Task.FromResult<VsaResult<string>>("async value");
 
         // Act
         var actionResult = await task.ToOkResult();
@@ -58,7 +58,7 @@ public class ActionResultExtensionsTests
     public void ToCreatedResult_WithStaticLocation_WhenSuccess_ShouldReturnCreatedResult()
     {
         // Arrange
-        ErrorOr<int> result = 42;
+        VsaResult<int> result = 42;
 
         // Act
         var actionResult = result.ToCreatedResult("/api/items/42");
@@ -75,7 +75,7 @@ public class ActionResultExtensionsTests
     public void ToCreatedResult_WithDynamicLocation_WhenSuccess_ShouldReturnCreatedResult()
     {
         // Arrange
-        ErrorOr<int> result = 123;
+        VsaResult<int> result = 123;
 
         // Act
         var actionResult = result.ToCreatedResult(value => $"/api/items/{value}");
@@ -90,7 +90,7 @@ public class ActionResultExtensionsTests
     public async Task ToCreatedResult_Async_WithDynamicLocation_WhenSuccess_ShouldReturnCreatedResult()
     {
         // Arrange
-        Task<ErrorOr<int>> task = Task.FromResult<ErrorOr<int>>(456);
+        Task<VsaResult<int>> task = Task.FromResult<VsaResult<int>>(456);
 
         // Act
         var actionResult = await task.ToCreatedResult(value => $"/api/items/{value}");
@@ -105,7 +105,7 @@ public class ActionResultExtensionsTests
     public void ToNoContentResult_WithSuccess_WhenSuccess_ShouldReturnNoContentResult()
     {
         // Arrange
-        ErrorOr<Success> result = Result.Success;
+        VsaResult<Success> result = Result.Success;
 
         // Act
         var actionResult = result.ToNoContentResult();
@@ -118,7 +118,7 @@ public class ActionResultExtensionsTests
     public void ToNoContentResult_WithUnit_WhenSuccess_ShouldReturnNoContentResult()
     {
         // Arrange
-        ErrorOr<Unit> result = Unit.Value;
+        VsaResult<Unit> result = Unit.Value;
 
         // Act
         var actionResult = result.ToNoContentResult();
@@ -131,7 +131,7 @@ public class ActionResultExtensionsTests
     public async Task ToNoContentResult_Async_WhenSuccess_ShouldReturnNoContentResult()
     {
         // Arrange
-        Task<ErrorOr<Unit>> task = Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+        Task<VsaResult<Unit>> task = Task.FromResult<VsaResult<Unit>>(Unit.Value);
 
         // Act
         var actionResult = await task.ToNoContentResult();
@@ -144,7 +144,7 @@ public class ActionResultExtensionsTests
     public void ToNoContentResult_WhenError_ShouldReturnProblemDetailsResult()
     {
         // Arrange
-        ErrorOr<Success> result = Error.Unauthorized();
+        VsaResult<Success> result = Error.Unauthorized();
 
         // Act
         var actionResult = result.ToNoContentResult();

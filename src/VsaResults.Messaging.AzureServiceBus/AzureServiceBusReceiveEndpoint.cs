@@ -55,7 +55,7 @@ public class AzureServiceBusReceiveEndpoint : IReceiveEndpoint
     public bool IsRunning => _isRunning;
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> StartAsync(CancellationToken ct = default)
+    public async Task<VsaResult<Unit>> StartAsync(CancellationToken ct = default)
     {
         if (_isRunning)
         {
@@ -213,7 +213,7 @@ public class AzureServiceBusReceiveEndpoint : IReceiveEndpoint
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> StopAsync(CancellationToken ct = default)
+    public async Task<VsaResult<Unit>> StopAsync(CancellationToken ct = default)
     {
         if (!_isRunning)
         {
@@ -489,7 +489,7 @@ internal sealed class AzureServiceBusReceiveEndpointConfigurator : IReceiveEndpo
     }
 
     /// <inheritdoc />
-    public void Handler<TMessage>(Func<ConsumeContext<TMessage>, CancellationToken, Task<ErrorOr<Unit>>> handler)
+    public void Handler<TMessage>(Func<ConsumeContext<TMessage>, CancellationToken, Task<VsaResult<Unit>>> handler)
         where TMessage : class, IMessage
     {
         var registration = new HandlerRegistration<TMessage>(handler, _serviceProvider);

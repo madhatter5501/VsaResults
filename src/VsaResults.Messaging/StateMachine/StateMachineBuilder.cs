@@ -59,7 +59,7 @@ public sealed class StateMachineBuilder<TState>
     /// <param name="handler">The handler for the initiating event.</param>
     /// <returns>This builder for method chaining.</returns>
     public StateMachineBuilder<TState> Initially<TMessage>(
-        Func<SagaContext<TState>, TMessage, CancellationToken, Task<ErrorOr<Unit>>> handler)
+        Func<SagaContext<TState>, TMessage, CancellationToken, Task<VsaResult<Unit>>> handler)
         where TMessage : class, IMessage
     {
         var eventHandler = new EventHandler<TState, TMessage>(handler, canInitiate: true);
@@ -76,7 +76,7 @@ public sealed class StateMachineBuilder<TState>
     /// <param name="handler">The handler for the initiating event.</param>
     /// <returns>This builder for method chaining.</returns>
     public StateMachineBuilder<TState> Initially<TMessage>(
-        Func<SagaContext<TState>, TMessage, Task<ErrorOr<Unit>>> handler)
+        Func<SagaContext<TState>, TMessage, Task<VsaResult<Unit>>> handler)
         where TMessage : class, IMessage
     {
         return Initially<TMessage>((ctx, msg, _) => handler(ctx, msg));
@@ -109,7 +109,7 @@ public sealed class StateMachineBuilder<TState>
     /// <param name="handler">The handler for the event.</param>
     /// <returns>This builder for method chaining.</returns>
     public StateMachineBuilder<TState> DuringAny<TMessage>(
-        Func<SagaContext<TState>, TMessage, CancellationToken, Task<ErrorOr<Unit>>> handler)
+        Func<SagaContext<TState>, TMessage, CancellationToken, Task<VsaResult<Unit>>> handler)
         where TMessage : class, IMessage
     {
         var eventHandler = new EventHandler<TState, TMessage>(handler);
@@ -183,7 +183,7 @@ public sealed class StateConfigurator<TState>
     /// <param name="handler">The handler for the event.</param>
     /// <returns>This configurator for method chaining.</returns>
     public StateConfigurator<TState> When<TMessage>(
-        Func<SagaContext<TState>, TMessage, CancellationToken, Task<ErrorOr<Unit>>> handler)
+        Func<SagaContext<TState>, TMessage, CancellationToken, Task<VsaResult<Unit>>> handler)
         where TMessage : class, IMessage
     {
         var eventHandler = new EventHandler<TState, TMessage>(handler);
@@ -203,7 +203,7 @@ public sealed class StateConfigurator<TState>
     /// <param name="handler">The handler for the event.</param>
     /// <returns>This configurator for method chaining.</returns>
     public StateConfigurator<TState> When<TMessage>(
-        Func<SagaContext<TState>, TMessage, Task<ErrorOr<Unit>>> handler)
+        Func<SagaContext<TState>, TMessage, Task<VsaResult<Unit>>> handler)
         where TMessage : class, IMessage
     {
         return When<TMessage>((ctx, msg, _) => handler(ctx, msg));
@@ -221,7 +221,7 @@ public sealed class StateConfigurator<TState>
         return When<TMessage>((ctx, _, _) =>
         {
             ctx.TransitionTo(targetState.Name);
-            return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+            return Task.FromResult<VsaResult<Unit>>(Unit.Value);
         });
     }
 
@@ -236,7 +236,7 @@ public sealed class StateConfigurator<TState>
         return When<TMessage>((ctx, _, _) =>
         {
             ctx.SetComplete();
-            return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+            return Task.FromResult<VsaResult<Unit>>(Unit.Value);
         });
     }
 

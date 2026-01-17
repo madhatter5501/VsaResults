@@ -13,5 +13,5 @@ public interface IFeatureValidator<TRequest>
     /// <param name="request">The request to validate.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The validated request or validation errors.</returns>
-    Task<ErrorOr<TRequest>> ValidateAsync(TRequest request, CancellationToken ct = default);
+    Task<VsaResult<TRequest>> ValidateAsync(TRequest request, CancellationToken ct = default);
 }

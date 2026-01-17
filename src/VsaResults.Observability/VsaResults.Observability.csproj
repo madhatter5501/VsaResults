@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../VsaResults.Features/VsaResults.Features.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PackageId>VsaResults.Observability</PackageId>
+    <RootNamespace>VsaResults.Observability</RootNamespace>
+    <AssemblyName>VsaResults.Observability</AssemblyName>
+    <Version>1.0.0</Version>
+    <Authors>Amichai Mantinband</Authors>
+    <PackageIcon>icon-square.png</PackageIcon>
+    <PackageTags>VsaResults;PII;Masking;Observability;WideEvents;Privacy</PackageTags>
+    <Description>PII masking and observability extensions for VsaResults. Provides extensible masking for wide events and structured logging.</Description>
+    <PackageProjectUrl>https://github.com/amantinband/error-or</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <licenses>https://opensource.org/licenses/MIT</licenses>
+    <RepositoryUrl>https://github.com/amantinband/error-or</RepositoryUrl>
+    <PackageOutputPath>../../artifacts/</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../assets/icon-square.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+</Project>

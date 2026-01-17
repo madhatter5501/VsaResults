@@ -16,7 +16,7 @@ public interface ISendEndpoint
     /// <param name="message">The command to send.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    Task<ErrorOr<Unit>> SendAsync<TMessage>(
+    Task<VsaResult<Unit>> SendAsync<TMessage>(
         TMessage message,
         CancellationToken ct = default)
         where TMessage : class, ICommand;
@@ -29,7 +29,7 @@ public interface ISendEndpoint
     /// <param name="configureHeaders">Header configuration callback.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    Task<ErrorOr<Unit>> SendAsync<TMessage>(
+    Task<VsaResult<Unit>> SendAsync<TMessage>(
         TMessage message,
         Action<MessageHeaders> configureHeaders,
         CancellationToken ct = default)
@@ -43,7 +43,7 @@ public interface ISendEndpoint
     /// <param name="correlationId">The correlation ID.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    Task<ErrorOr<Unit>> SendAsync<TMessage>(
+    Task<VsaResult<Unit>> SendAsync<TMessage>(
         TMessage message,
         CorrelationId correlationId,
         CancellationToken ct = default)
@@ -61,7 +61,7 @@ public interface ISendEndpointProvider
     /// <param name="address">The destination address.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The send endpoint or an error.</returns>
-    Task<ErrorOr<ISendEndpoint>> GetSendEndpointAsync(
+    Task<VsaResult<ISendEndpoint>> GetSendEndpointAsync(
         EndpointAddress address,
         CancellationToken ct = default);
 }

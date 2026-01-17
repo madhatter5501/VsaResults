@@ -30,7 +30,7 @@ public interface ISaga<TState, in TMessage> : ISaga
     /// <param name="message">The message to handle.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    Task<ErrorOr<Unit>> HandleAsync(
+    Task<VsaResult<Unit>> HandleAsync(
         SagaContext<TState> context,
         TMessage message,
         CancellationToken ct = default);

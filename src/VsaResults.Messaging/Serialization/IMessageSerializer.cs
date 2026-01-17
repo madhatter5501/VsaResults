@@ -15,7 +15,7 @@ public interface IMessageSerializer
     /// <typeparam name="TMessage">The message type.</typeparam>
     /// <param name="message">The message to serialize.</param>
     /// <returns>The serialized bytes or an error.</returns>
-    ErrorOr<byte[]> Serialize<TMessage>(TMessage message)
+    VsaResult<byte[]> Serialize<TMessage>(TMessage message)
         where TMessage : class;
 
     /// <summary>
@@ -24,7 +24,7 @@ public interface IMessageSerializer
     /// <typeparam name="TMessage">The expected message type.</typeparam>
     /// <param name="data">The serialized data.</param>
     /// <returns>The deserialized message or an error.</returns>
-    ErrorOr<TMessage> Deserialize<TMessage>(byte[] data)
+    VsaResult<TMessage> Deserialize<TMessage>(byte[] data)
         where TMessage : class;
 
     /// <summary>
@@ -33,5 +33,5 @@ public interface IMessageSerializer
     /// <param name="data">The serialized data.</param>
     /// <param name="messageType">The target message type.</param>
     /// <returns>The deserialized message or an error.</returns>
-    ErrorOr<object> Deserialize(byte[] data, Type messageType);
+    VsaResult<object> Deserialize(byte[] data, Type messageType);
 }

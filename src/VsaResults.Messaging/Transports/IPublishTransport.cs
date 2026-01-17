@@ -12,7 +12,7 @@ public interface IPublishTransport
     /// <param name="envelope">The message envelope.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or an error.</returns>
-    Task<ErrorOr<Unit>> PublishAsync<TMessage>(
+    Task<VsaResult<Unit>> PublishAsync<TMessage>(
         MessageEnvelope envelope,
         CancellationToken ct = default)
         where TMessage : class, IEvent;

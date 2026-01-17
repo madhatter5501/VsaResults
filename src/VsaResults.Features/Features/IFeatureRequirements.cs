@@ -13,5 +13,5 @@ public interface IFeatureRequirements<TRequest>
     /// <param name="request">The validated request.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The feature context or requirement failures.</returns>
-    Task<ErrorOr<FeatureContext<TRequest>>> EnforceAsync(TRequest request, CancellationToken ct = default);
+    Task<VsaResult<FeatureContext<TRequest>>> EnforceAsync(TRequest request, CancellationToken ct = default);
 }

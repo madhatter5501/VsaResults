@@ -20,7 +20,7 @@ internal sealed class InMemoryPublishTransport : IPublishTransport
     }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> PublishAsync<TMessage>(
+    public async Task<VsaResult<Unit>> PublishAsync<TMessage>(
         MessageEnvelope envelope,
         CancellationToken ct = default)
         where TMessage : class, IEvent

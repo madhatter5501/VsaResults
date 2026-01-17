@@ -43,7 +43,7 @@ public class RabbitMqIntegrationTests : IAsyncLifetime
                         .AddContext("amount", context.Message.Amount);
 
                     _orderCreatedReceived.TrySetResult(context.Message);
-                    return Task.FromResult<ErrorOr<Unit>>(Unit.Value);
+                    return Task.FromResult<VsaResult<Unit>>(Unit.Value);
                 });
             });
         });

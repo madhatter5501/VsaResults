@@ -13,5 +13,5 @@ public interface IFeatureMutator<TRequest, TResult>
     /// <param name="context">The feature context with request and loaded entities.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The result or execution errors.</returns>
-    Task<ErrorOr<TResult>> ExecuteAsync(FeatureContext<TRequest> context, CancellationToken ct = default);
+    Task<VsaResult<TResult>> ExecuteAsync(FeatureContext<TRequest> context, CancellationToken ct = default);
 }

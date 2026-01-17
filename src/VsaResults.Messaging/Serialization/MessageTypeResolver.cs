@@ -53,7 +53,7 @@ public sealed class MessageTypeResolver
     /// </summary>
     /// <param name="typeIdentifier">The type identifier (URN format).</param>
     /// <returns>The resolved type or an error.</returns>
-    public ErrorOr<Type> ResolveType(string typeIdentifier)
+    public VsaResult<Type> ResolveType(string typeIdentifier)
     {
         // Check cache first
         if (_identifierToType.TryGetValue(typeIdentifier, out var cached))
@@ -155,7 +155,7 @@ public sealed class MessageTypeResolver
         return $"{UrnPrefix}{ns}:{name}";
     }
 
-    private static ErrorOr<Type> ParseTypeFromIdentifier(string identifier)
+    private static VsaResult<Type> ParseTypeFromIdentifier(string identifier)
     {
         if (!identifier.StartsWith(UrnPrefix))
         {

@@ -114,10 +114,10 @@ public class ErrorTypeTests
     }
 
     [Fact]
-    public void ErrorOrFactory_FromError_ShouldCreateErrorOrWithError()
+    public void VsaResultFactory_FromError_ShouldCreateErrorOrWithError()
     {
         // Act
-        ErrorOr<int> errorOr = ErrorOrFactory.FromError<int>(Error.BadRequest());
+        VsaResult<int> errorOr = VsaResultFactory.FromError<int>(Error.BadRequest());
 
         // Assert
         errorOr.IsError.Should().BeTrue();
@@ -125,10 +125,10 @@ public class ErrorTypeTests
     }
 
     [Fact]
-    public void ErrorOrFactory_FromErrors_ShouldCreateErrorOrWithMultipleErrors()
+    public void VsaResultFactory_FromErrors_ShouldCreateErrorOrWithMultipleErrors()
     {
         // Act
-        ErrorOr<int> errorOr = ErrorOrFactory.FromErrors<int>(
+        VsaResult<int> errorOr = VsaResultFactory.FromErrors<int>(
             Error.BadRequest(),
             Error.Validation());
 

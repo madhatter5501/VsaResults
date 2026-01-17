@@ -13,5 +13,5 @@ public interface IFeatureQuery<TRequest, TResult>
     /// <param name="request">The validated request.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The result or execution errors.</returns>
-    Task<ErrorOr<TResult>> ExecuteAsync(TRequest request, CancellationToken ct = default);
+    Task<VsaResult<TResult>> ExecuteAsync(TRequest request, CancellationToken ct = default);
 }

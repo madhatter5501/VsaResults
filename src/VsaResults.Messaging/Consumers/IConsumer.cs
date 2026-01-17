@@ -10,14 +10,14 @@ public interface IConsumer
 
 /// <summary>
 /// Consumer for a specific message type.
-/// Returns <see cref="ErrorOr{TValue}"/> to enable functional error handling.
+/// Returns <see cref="VsaResult{TValue}"/> to enable functional error handling.
 /// When errors are returned, a <see cref="Fault{TMessage}"/> is automatically published.
 /// </summary>
 /// <typeparam name="TMessage">The type of message to consume.</typeparam>
 /// <remarks>
 /// <para>
 /// Unlike MassTransit which uses exceptions for error handling, VsaResults.Messaging
-/// uses the ErrorOr pattern. Return errors instead of throwing exceptions.
+/// uses the VsaResult pattern. Return errors instead of throwing exceptions.
 /// </para>
 /// <para>
 /// Example:
@@ -50,7 +50,7 @@ public interface IConsumer<TMessage> : IConsumer
     /// <see cref="Unit.Value"/> on success, or errors on failure.
     /// On error, a <see cref="Fault{TMessage}"/> is automatically published.
     /// </returns>
-    Task<ErrorOr<Unit>> ConsumeAsync(
+    Task<VsaResult<Unit>> ConsumeAsync(
         ConsumeContext<TMessage> context,
         CancellationToken ct = default);
 }
@@ -73,7 +73,7 @@ public interface IConsumer<TMessage, TResult> : IConsumer
     /// The result on success, or errors on failure.
     /// On error, a <see cref="Fault{TMessage}"/> is automatically published.
     /// </returns>
-    Task<ErrorOr<TResult>> ConsumeAsync(
+    Task<VsaResult<TResult>> ConsumeAsync(
         ConsumeContext<TMessage> context,
         CancellationToken ct = default);
 }

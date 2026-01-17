@@ -76,7 +76,7 @@ public interface IEventHandler<TState>
     /// <param name="message">The message to handle.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Unit on success, or errors on failure.</returns>
-    Task<ErrorOr<Unit>> HandleAsync(SagaContext<TState> context, object message, CancellationToken ct);
+    Task<VsaResult<Unit>> HandleAsync(SagaContext<TState> context, object message, CancellationToken ct);
 }
 
 /// <summary>
@@ -88,11 +88,11 @@ public sealed class EventHandler<TState, TMessage> : IEventHandler<TState>
     where TState : class, ISagaState, new()
     where TMessage : class, IMessage
 {
-    private readonly Func<SagaContext<TState>, TMessage, CancellationToken, Task<ErrorOr<Unit>>> _handler;
+    private readonly Func<SagaContext<TState>, TMessage, CancellationToken, Task<VsaResult<Unit>>> _handler;
     private readonly List<State> _activeInStates = new();
 
     internal EventHandler(
-        Func<SagaContext<TState>, TMessage, CancellationToken, Task<ErrorOr<Unit>>> handler,
+        Func<SagaContext<TState>, TMessage, CancellationToken, Task<VsaResult<Unit>>> handler,
         bool canInitiate = false)
     {
         _handler = handler;
@@ -109,7 +109,7 @@ public sealed class EventHandler<TState, TMessage> : IEventHandler<TState>
     public bool CanInitiate { get; }
 
     /// <inheritdoc />
-    public async Task<ErrorOr<Unit>> HandleAsync(SagaContext<TState> context, object message, CancellationToken ct)
+    public async Task<VsaResult<Unit>> HandleAsync(SagaContext<TState> context, object message, CancellationToken ct)
     {
         if (message is TMessage typedMessage)
         {
