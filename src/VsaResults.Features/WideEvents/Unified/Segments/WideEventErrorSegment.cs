@@ -57,7 +57,7 @@ public sealed class WideEventErrorSegment
         var segment = new WideEventErrorSegment
         {
             FailedAtStage = failedAtStage,
-            Count = errors.Count
+            Count = errors.Count,
         };
 
         if (errors.Count == 0)
@@ -93,7 +93,7 @@ public sealed class WideEventErrorSegment
             ExceptionType = exception.GetType().FullName,
             ExceptionMessage = exception.Message,
             ExceptionStackTrace = includeStackTrace ? exception.StackTrace : null,
-            Count = 1
+            Count = 1,
         };
     }
 }

@@ -45,7 +45,7 @@ public sealed class WideEventOptions
         "deserialization_error",
         "retry_exhausted",
         "circuit_breaker_open",
-        "timeout"
+        "timeout",
     };
 
     /// <summary>
@@ -64,7 +64,7 @@ public sealed class WideEventOptions
         "api_key",
         "apikey",
         "access_token",
-        "refresh_token"
+        "refresh_token",
     };
 
     /// <summary>
@@ -82,7 +82,7 @@ public sealed class WideEventOptions
     public int MaxStringValueLength { get; set; } = 1000;
 
     /// <summary>
-    /// Gets or sets whether to include exception stack traces.
+    /// Gets or sets a value indicating whether to include exception stack traces.
     /// Default: false (recommended for production).
     /// </summary>
     /// <remarks>
@@ -100,7 +100,7 @@ public sealed class WideEventOptions
     public int MaxChildSpans { get; set; } = 20;
 
     /// <summary>
-    /// Gets or sets whether to include child span context in aggregated events.
+    /// Gets or sets a value indicating whether to include child span context in aggregated events.
     /// When false, child span context is omitted to reduce event size.
     /// Default: true.
     /// </summary>
@@ -112,11 +112,11 @@ public sealed class WideEventOptions
     /// </summary>
     public HashSet<string> AutoScopeEventTypes { get; set; } = new(StringComparer.OrdinalIgnoreCase)
     {
-        "message"
+        "message",
     };
 
     /// <summary>
-    /// Gets or sets whether sampling is enabled.
+    /// Gets or sets a value indicating whether sampling is enabled.
     /// When disabled, all events are emitted (useful for debugging).
     /// Default: true.
     /// </summary>
@@ -136,7 +136,7 @@ public sealed class WideEventOptions
             EnableSampling = false,
             IncludeStackTraces = true,
             MaxContextEntries = 100,
-            MaxStringValueLength = 5000
+            MaxStringValueLength = 5000,
         };
     }
 
@@ -152,7 +152,7 @@ public sealed class WideEventOptions
             Verbosity = WideEventVerbosity.Standard,
             SamplingRate = 0.1,
             EnableSampling = true,
-            IncludeStackTraces = false
+            IncludeStackTraces = false,
         };
     }
 
@@ -172,7 +172,7 @@ public sealed class WideEventOptions
             MaxContextEntries = 20,
             MaxStringValueLength = 500,
             MaxChildSpans = 5,
-            IncludeChildSpanContext = false
+            IncludeChildSpanContext = false,
         };
     }
 }

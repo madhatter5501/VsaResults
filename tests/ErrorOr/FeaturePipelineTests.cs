@@ -158,7 +158,7 @@ public class FeaturePipelineTests
         cts.Cancel();
 
         // Act
-        var action = async () => await feature.ExecuteAsync(request, emitter: null, ct: cts.Token);
+        var action = async () => await feature.ExecuteAsync(request, emitter: (IWideEventEmitter?)null, ct: cts.Token);
 
         // Assert
         await action.Should().ThrowAsync<OperationCanceledException>();

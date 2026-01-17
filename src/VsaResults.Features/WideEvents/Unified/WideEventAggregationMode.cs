@@ -8,7 +8,7 @@ public enum WideEventAggregationMode
     /// <summary>
     /// Child events are captured as <see cref="WideEventChildSpan"/> within the parent event.
     /// Only the parent event is emitted at scope completion.
-    /// This is the default and recommended mode for message→feature scenarios.
+    /// This is the default and recommended mode for message-to-feature scenarios.
     /// </summary>
     AggregateToParent = 0,
 
@@ -22,5 +22,5 @@ public enum WideEventAggregationMode
     /// No aggregation or linking - current behavior.
     /// Events are completely independent.
     /// </summary>
-    Independent = 2
+    Independent = 2,
 }

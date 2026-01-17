@@ -22,5 +22,5 @@ public enum WideEventVerbosity
     /// and nested child spans with their own context.
     /// Best for debugging and development environments.
     /// </summary>
-    Verbose = 2
+    Verbose = 2,
 }

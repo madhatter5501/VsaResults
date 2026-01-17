@@ -85,6 +85,18 @@ public sealed class WideEventScope : IDisposable
     }
 
     /// <summary>
+    /// Tries to report a child event to the current scope.
+    /// If a scope is active, the event is captured according to the aggregation mode.
+    /// </summary>
+    /// <param name="childEvent">The child event to report.</param>
+    /// <returns>True if the event was captured; false if it should be emitted normally.</returns>
+    public static bool TryReportToCurrentScope(WideEvent childEvent)
+    {
+        var scope = Current;
+        return scope?.TryCaptureChildEvent(childEvent) ?? false;
+    }
+
+    /// <summary>
     /// Attempts to capture a child event based on the current aggregation mode.
     /// </summary>
     /// <param name="childEvent">The child event to potentially capture.</param>
@@ -191,18 +203,6 @@ public sealed class WideEventScope : IDisposable
 
         _isDisposed = true;
         CurrentScope.Value = _parent;
-    }
-
-    /// <summary>
-    /// Tries to report a child event to the current scope.
-    /// If a scope is active, the event is captured according to the aggregation mode.
-    /// </summary>
-    /// <param name="childEvent">The child event to report.</param>
-    /// <returns>True if the event was captured; false if it should be emitted normally.</returns>
-    public static bool TryReportToCurrentScope(WideEvent childEvent)
-    {
-        var scope = Current;
-        return scope?.TryCaptureChildEvent(childEvent) ?? false;
     }
 
     private WideEvent Complete(Func<WideEvent> completionFunc)

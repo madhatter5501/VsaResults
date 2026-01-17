@@ -13,8 +13,8 @@ namespace VsaResults.WideEvents;
 /// - One event per service call (not scattered log lines)
 /// - Composable segments (Feature?, Message?, Error?)
 /// - Aggregatable (child spans for nested operations)
-/// - High cardinality fields (trace_id, correlation_id, feature_name)
-/// - High dimensionality (many fields for rich querying)
+/// - High cardinality fields (trace_id, correlation_id, feature_name).
+/// - High dimensionality (many fields for rich querying).
 /// </summary>
 public sealed class WideEvent
 {

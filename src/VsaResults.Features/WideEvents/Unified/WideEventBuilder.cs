@@ -80,7 +80,7 @@ public sealed partial class WideEventBuilder
         _event.Feature = new WideEventFeatureSegment
         {
             FeatureName = featureName,
-            FeatureType = featureType
+            FeatureType = featureType,
         };
         return this;
     }
@@ -100,7 +100,7 @@ public sealed partial class WideEventBuilder
             MessageId = messageId,
             MessageType = messageType,
             ConsumerType = consumerType,
-            EndpointName = endpointName
+            EndpointName = endpointName,
         };
         return this;
     }
@@ -657,7 +657,7 @@ public sealed partial class WideEventBuilder
         {
             FailedAtStage = "timeout",
             Message = $"Operation timed out after {timeoutMs:F0}ms",
-            Count = 0
+            Count = 0,
         };
         return Build();
     }

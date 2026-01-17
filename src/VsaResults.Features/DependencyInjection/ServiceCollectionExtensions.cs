@@ -1,6 +1,9 @@
 using System.Reflection;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
+using VsaResults.WideEvents;
 
 namespace VsaResults;
 
@@ -57,6 +60,132 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddWideEventEmitter(this IServiceCollection services, IWideEventEmitter emitter)
     {
         services.AddSingleton(emitter);
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the unified wide events system with default options.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddUnifiedWideEvents(this IServiceCollection services)
+    {
+        return services.AddUnifiedWideEvents(_ => { });
+    }
+
+    /// <summary>
+    /// Registers the unified wide events system with custom options.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">Action to configure options.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddUnifiedWideEvents(
+        this IServiceCollection services,
+        Action<WideEventOptions> configure)
+    {
+        var options = new WideEventOptions();
+        configure(options);
+
+        services.AddSingleton(options);
+
+        // Register interceptors
+        services.TryAddSingleton<SamplingInterceptor>();
+        services.TryAddSingleton<RedactionInterceptor>();
+        services.TryAddSingleton<ContextLimitInterceptor>();
+        services.TryAddSingleton<VerbosityInterceptor>();
+
+        // Register the interceptor collection
+        services.TryAddSingleton<IEnumerable<IWideEventInterceptor>>(sp => new IWideEventInterceptor[]
+        {
+            sp.GetRequiredService<SamplingInterceptor>(),
+            sp.GetRequiredService<RedactionInterceptor>(),
+            sp.GetRequiredService<ContextLimitInterceptor>(),
+            sp.GetRequiredService<VerbosityInterceptor>(),
+        });
+
+        // Register in-memory sink as default (users should override with their own sink)
+        services.TryAddSingleton<IWideEventSink, InMemoryWideEventSink>();
+
+        // Register the unified emitter
+        services.TryAddSingleton<IUnifiedWideEventEmitter>(sp =>
+        {
+            var sink = sp.GetRequiredService<IWideEventSink>();
+            var interceptors = sp.GetRequiredService<IEnumerable<IWideEventInterceptor>>();
+            return new UnifiedWideEventEmitter(sink, interceptors);
+        });
+
+        // Register legacy adapter for backward compatibility
+        services.TryAddSingleton<IWideEventEmitter>(sp =>
+            new UnifiedToLegacyEmitterAdapter(sp.GetRequiredService<IUnifiedWideEventEmitter>()));
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a custom sink for the unified wide events system.
+    /// </summary>
+    /// <typeparam name="TSink">The sink implementation type.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddWideEventSink<TSink>(this IServiceCollection services)
+        where TSink : class, IWideEventSink
+    {
+        services.AddSingleton<IWideEventSink, TSink>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a custom sink instance for the unified wide events system.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="sink">The sink instance.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddWideEventSink(this IServiceCollection services, IWideEventSink sink)
+    {
+        services.AddSingleton(sink);
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a custom interceptor for the unified wide events system.
+    /// </summary>
+    /// <typeparam name="TInterceptor">The interceptor implementation type.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddWideEventInterceptor<TInterceptor>(this IServiceCollection services)
+        where TInterceptor : class, IWideEventInterceptor
+    {
+        services.AddSingleton<IWideEventInterceptor, TInterceptor>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a Serilog-compatible sink using ILogger.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddSerilogWideEventSink(this IServiceCollection services)
+    {
+        services.AddSingleton<IWideEventSink>(sp =>
+        {
+            var loggerFactory = sp.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>();
+            return new SerilogWideEventSink(loggerFactory);
+        });
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a structured logging sink using ILogger (includes all event properties).
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddStructuredLogWideEventSink(this IServiceCollection services)
+    {
+        services.AddSingleton<IWideEventSink>(sp =>
+        {
+            var loggerFactory = sp.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>();
+            return new StructuredLogWideEventSink(loggerFactory.CreateLogger("WideEvent"));
+        });
         return services;
     }
 

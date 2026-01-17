@@ -56,7 +56,7 @@ public sealed class WideEventChildSpan
             Outcome = wideEvent.Outcome,
             Error = wideEvent.Error,
             Feature = wideEvent.Feature,
-            Context = wideEvent.Context.Count > 0 ? new Dictionary<string, object?>(wideEvent.Context) : null
+            Context = wideEvent.Context.Count > 0 ? new Dictionary<string, object?>(wideEvent.Context) : null,
         };
     }
 
