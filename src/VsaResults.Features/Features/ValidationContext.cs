@@ -30,7 +30,7 @@ public sealed class ValidationContext
     public IReadOnlyList<Error> Errors => _errors;
 
     /// <summary>
-    /// Gets whether any errors have been accumulated.
+    /// Gets a value indicating whether any errors have been accumulated.
     /// </summary>
     public bool HasErrors => _errors.Count > 0;
 
@@ -80,5 +80,5 @@ public sealed class ValidationContext
     /// <param name="request">The request being validated.</param>
     /// <returns>A result containing either the request or validation errors.</returns>
     public VsaResult<TRequest> ToResult<TRequest>(TRequest request)
-        => HasErrors ? VsaResultFactory.FromErrors<TRequest>([.. _errors]) : request.ToResult();
+        => HasErrors ? VsaResultFactory.FromErrors<TRequest>(_errors.ToArray()) : request.ToResult();
 }
