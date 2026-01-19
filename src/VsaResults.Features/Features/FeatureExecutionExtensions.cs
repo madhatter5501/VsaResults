@@ -67,6 +67,9 @@ public static class FeatureExecutionExtensions
 
             context = enforced.Value;
 
+            // Enrich with request metadata (IP, user agent, etc.)
+            EnrichWithRequestMetadata(context);
+
             // Execution stage
             var mutator = feature.Mutator ?? throw new InvalidOperationException(ExceptionMessages.MutatorRequired);
             wideEvent.StartStage(StageNames.Execution, mutator.GetType(), MethodNames.ExecuteAsync);
@@ -231,6 +234,9 @@ public static class FeatureExecutionExtensions
 
             context = enforced.Value;
 
+            // Enrich with request metadata (IP, user agent, etc.)
+            EnrichWithRequestMetadata(context);
+
             // Execution stage
             var mutator = feature.Mutator ?? throw new InvalidOperationException(ExceptionMessages.MutatorRequired);
             builder.StartStage(StageNames.Execution, mutator.GetType(), MethodNames.ExecuteAsync);
@@ -338,6 +344,45 @@ public static class FeatureExecutionExtensions
     private static void EmitWideEvent(IWideEventEmitter? emitter, FeatureWideEvent wideEvent)
     {
         emitter?.Emit(wideEvent);
+    }
+
+    /// <summary>
+    /// Enriches the feature context with request metadata from the current scope.
+    /// </summary>
+    /// <typeparam name="TRequest">The request type.</typeparam>
+    /// <param name="context">The feature context to enrich.</param>
+    private static void EnrichWithRequestMetadata<TRequest>(FeatureContext<TRequest> context)
+    {
+        var provider = RequestMetadataScope.Current;
+        if (provider is null)
+        {
+            return;
+        }
+
+        if (provider.IpAddress is { } ip)
+        {
+            context.AddContext("ip_address", ip);
+        }
+
+        if (provider.UserAgent is { } ua)
+        {
+            context.AddContext("user_agent", ua);
+        }
+
+        if (provider.TraceId is { } traceId)
+        {
+            context.AddContext("request_id", traceId);
+        }
+
+        if (provider.RequestPath is { } path)
+        {
+            context.AddContext("request_path", path);
+        }
+
+        if (provider.RequestMethod is { } method)
+        {
+            context.AddContext("request_method", method);
+        }
     }
 
     private static class FeatureTypes
