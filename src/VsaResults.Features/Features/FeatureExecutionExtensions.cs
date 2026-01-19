@@ -109,7 +109,7 @@ public static class FeatureExecutionExtensions
 
     /// <summary>
     /// Executes a query feature through the pipeline:
-    /// Validate → Execute Query → Emit Wide Event.
+    /// Validate → Enforce Requirements → Execute Query → Emit Wide Event.
     /// </summary>
     /// <typeparam name="TRequest">The type of the request.</typeparam>
     /// <typeparam name="TResult">The type of the result.</typeparam>
@@ -130,10 +130,12 @@ public static class FeatureExecutionExtensions
             .WithRequestContext(request)
             .WithPipelineStages(
                 feature.Validator?.GetType(),
-                requirementsType: null,
+                feature.Requirements?.GetType(),
                 feature.Query?.GetType(),
                 sideEffectsType: null,
                 isMutation: false);
+
+        FeatureContext<TRequest>? context = null;
 
         try
         {
@@ -146,30 +148,48 @@ public static class FeatureExecutionExtensions
             if (validated.IsError)
             {
                 wideEvent.WithResultContext(validated.Context);
-                EmitWideEvent(emitter, wideEvent.ValidationFailure(validated.Errors));
+                EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).ValidationFailure(validated.Errors));
                 return new VsaResult<TResult>(validated.Errors, validated._context);
             }
+
+            // Requirements stage
+            var requirements = feature.Requirements ?? NoOpRequirements<TRequest>.Instance;
+            wideEvent.StartStage(StageNames.Requirements, requirements.GetType(), MethodNames.EnforceAsync);
+            var enforced = await requirements.EnforceAsync(validated.Value, ct).ConfigureAwait(false);
+            wideEvent.RecordRequirements();
+
+            if (enforced.IsError)
+            {
+                wideEvent.WithResultContext(enforced.Context);
+                EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).RequirementsFailure(enforced.Errors));
+                return new VsaResult<TResult>(enforced.Errors, enforced._context);
+            }
+
+            context = enforced.Value;
+
+            // Enrich with request metadata (IP, user agent, etc.)
+            EnrichWithRequestMetadata(context);
 
             // Execution stage
             var query = feature.Query ?? throw new InvalidOperationException(ExceptionMessages.QueryRequired);
             wideEvent.StartStage(StageNames.Execution, query.GetType(), MethodNames.ExecuteAsync);
-            var result = await query.ExecuteAsync(validated.Value, ct).ConfigureAwait(false);
+            var result = await query.ExecuteAsync(context, ct).ConfigureAwait(false);
             wideEvent.RecordExecution();
 
             if (result.IsError)
             {
                 wideEvent.WithResultContext(result.Context);
-                EmitWideEvent(emitter, wideEvent.ExecutionFailure(result.Errors));
+                EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).ExecutionFailure(result.Errors));
                 return result;
             }
 
             wideEvent.WithResultContext(result.Context);
-            EmitWideEvent(emitter, wideEvent.Success());
+            EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).Success());
             return result;
         }
         catch (Exception ex)
         {
-            EmitWideEvent(emitter, wideEvent.Exception(ex));
+            EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).Exception(ex));
             throw;
         }
     }
@@ -297,10 +317,12 @@ public static class FeatureExecutionExtensions
             .WithRequestContext(request)
             .WithPipelineStages(
                 feature.Validator?.GetType(),
-                requirementsType: null,
+                feature.Requirements?.GetType(),
                 feature.Query?.GetType(),
                 sideEffectsType: null,
                 isMutation: false);
+
+        FeatureContext<TRequest>? context = null;
 
         try
         {
@@ -313,30 +335,48 @@ public static class FeatureExecutionExtensions
             if (validated.IsError)
             {
                 builder.WithResultContext(validated.Context);
-                emitter.Emit(builder.ValidationFailure(validated.Errors));
+                emitter.Emit(builder.WithFeatureContext(context).ValidationFailure(validated.Errors));
                 return new VsaResult<TResult>(validated.Errors, validated._context);
             }
+
+            // Requirements stage
+            var requirements = feature.Requirements ?? NoOpRequirements<TRequest>.Instance;
+            builder.StartStage(StageNames.Requirements, requirements.GetType(), MethodNames.EnforceAsync);
+            var enforced = await requirements.EnforceAsync(validated.Value, ct).ConfigureAwait(false);
+            builder.RecordRequirements();
+
+            if (enforced.IsError)
+            {
+                builder.WithResultContext(enforced.Context);
+                emitter.Emit(builder.WithFeatureContext(context).RequirementsFailure(enforced.Errors));
+                return new VsaResult<TResult>(enforced.Errors, enforced._context);
+            }
+
+            context = enforced.Value;
+
+            // Enrich with request metadata (IP, user agent, etc.)
+            EnrichWithRequestMetadata(context);
 
             // Execution stage
             var query = feature.Query ?? throw new InvalidOperationException(ExceptionMessages.QueryRequired);
             builder.StartStage(StageNames.Execution, query.GetType(), MethodNames.ExecuteAsync);
-            var result = await query.ExecuteAsync(validated.Value, ct).ConfigureAwait(false);
+            var result = await query.ExecuteAsync(context, ct).ConfigureAwait(false);
             builder.RecordExecution();
 
             if (result.IsError)
             {
                 builder.WithResultContext(result.Context);
-                emitter.Emit(builder.ExecutionFailure(result.Errors));
+                emitter.Emit(builder.WithFeatureContext(context).ExecutionFailure(result.Errors));
                 return result;
             }
 
             builder.WithResultContext(result.Context);
-            emitter.Emit(builder.Success());
+            emitter.Emit(builder.WithFeatureContext(context).Success());
             return result;
         }
         catch (Exception ex)
         {
-            emitter.Emit(builder.Exception(ex));
+            emitter.Emit(builder.WithFeatureContext(context).Exception(ex));
             throw;
         }
     }

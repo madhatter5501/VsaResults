@@ -1,7 +1,7 @@
 namespace VsaResults;
 
 /// <summary>
-/// Defines a query feature with validation and execution.
+/// Defines a query feature with validation, requirements, and execution.
 /// Use for read-only operations that don't modify state.
 /// </summary>
 /// <typeparam name="TRequest">The type of the request.</typeparam>
@@ -12,6 +12,11 @@ public interface IQueryFeature<TRequest, TResult>
     /// Gets the validator for the incoming request. Defaults to no-op validation.
     /// </summary>
     IFeatureValidator<TRequest> Validator => NoOpValidator<TRequest>.Instance;
+
+    /// <summary>
+    /// Gets the requirements enforcer for authorization and entity loading. Defaults to no-op.
+    /// </summary>
+    IFeatureRequirements<TRequest> Requirements => NoOpRequirements<TRequest>.Instance;
 
     /// <summary>
     /// Gets the query executor.

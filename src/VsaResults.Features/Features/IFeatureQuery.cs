@@ -10,8 +10,8 @@ public interface IFeatureQuery<TRequest, TResult>
     /// <summary>
     /// Executes the query.
     /// </summary>
-    /// <param name="request">The validated request.</param>
+    /// <param name="context">The feature context containing the validated request and authorization state.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The result or execution errors.</returns>
-    Task<VsaResult<TResult>> ExecuteAsync(TRequest request, CancellationToken ct = default);
+    Task<VsaResult<TResult>> ExecuteAsync(FeatureContext<TRequest> context, CancellationToken ct = default);
 }
