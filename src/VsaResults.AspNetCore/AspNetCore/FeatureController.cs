@@ -38,7 +38,7 @@ public abstract class FeatureController : ControllerBase
     protected async Task<ActionResult<TResult>> QueryOk<TRequest, TResult>(TRequest request, CancellationToken ct = default)
     {
         var feature = HttpContext.RequestServices.GetRequiredService<IQueryFeature<TRequest, TResult>>();
-        var emitter = HttpContext.RequestServices.GetService<IWideEventEmitter>();
+        var emitter = HttpContext.RequestServices.GetRequiredService<IWideEventEmitter>();
 
         var result = await feature.ExecuteAsync(request, emitter, ct);
         return result.ToOkResult();
@@ -55,7 +55,7 @@ public abstract class FeatureController : ControllerBase
     protected async Task<ActionResult<TResult>> MutationOk<TRequest, TResult>(TRequest request, CancellationToken ct = default)
     {
         var feature = HttpContext.RequestServices.GetRequiredService<IMutationFeature<TRequest, TResult>>();
-        var emitter = HttpContext.RequestServices.GetService<IWideEventEmitter>();
+        var emitter = HttpContext.RequestServices.GetRequiredService<IWideEventEmitter>();
 
         var result = await feature.ExecuteAsync(request, emitter, ct);
         return result.ToOkResult();
@@ -76,7 +76,7 @@ public abstract class FeatureController : ControllerBase
         CancellationToken ct = default)
     {
         var feature = HttpContext.RequestServices.GetRequiredService<IMutationFeature<TRequest, TResult>>();
-        var emitter = HttpContext.RequestServices.GetService<IWideEventEmitter>();
+        var emitter = HttpContext.RequestServices.GetRequiredService<IWideEventEmitter>();
 
         var result = await feature.ExecuteAsync(request, emitter, ct);
         return result.ToCreatedResult(locationSelector);
@@ -92,7 +92,7 @@ public abstract class FeatureController : ControllerBase
     protected async Task<IActionResult> MutationNoContent<TRequest>(TRequest request, CancellationToken ct = default)
     {
         var feature = HttpContext.RequestServices.GetRequiredService<IMutationFeature<TRequest, Unit>>();
-        var emitter = HttpContext.RequestServices.GetService<IWideEventEmitter>();
+        var emitter = HttpContext.RequestServices.GetRequiredService<IWideEventEmitter>();
 
         var result = await feature.ExecuteAsync(request, emitter, ct);
         return result.ToNoContentResult();
@@ -114,7 +114,7 @@ public abstract class FeatureController : ControllerBase
         CancellationToken ct = default)
     {
         var feature = HttpContext.RequestServices.GetRequiredService<IQueryFeature<TRequest, TResult>>();
-        var emitter = HttpContext.RequestServices.GetService<IWideEventEmitter>();
+        var emitter = HttpContext.RequestServices.GetRequiredService<IWideEventEmitter>();
 
         var result = await feature.ExecuteAsync(request, emitter, ct);
         return resultMapper(result);
@@ -136,7 +136,7 @@ public abstract class FeatureController : ControllerBase
         CancellationToken ct = default)
     {
         var feature = HttpContext.RequestServices.GetRequiredService<IMutationFeature<TRequest, TResult>>();
-        var emitter = HttpContext.RequestServices.GetService<IWideEventEmitter>();
+        var emitter = HttpContext.RequestServices.GetRequiredService<IWideEventEmitter>();
 
         var result = await feature.ExecuteAsync(request, emitter, ct);
         return resultMapper(result);

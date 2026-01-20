@@ -30,7 +30,7 @@ public static class FeatureHandler
         async (
             [AsParameters] TRequest request,
             IQueryFeature<TRequest, TResult> feature,
-            IWideEventEmitter? emitter,
+            IWideEventEmitter emitter,
             CancellationToken ct) =>
         {
             var result = await feature.ExecuteAsync(request, emitter, ct);
@@ -49,7 +49,7 @@ public static class FeatureHandler
         async (
             [AsParameters] TRequest request,
             IQueryFeature<TRequest, TResult> feature,
-            IWideEventEmitter? emitter,
+            IWideEventEmitter emitter,
             CancellationToken ct) =>
         {
             var result = await feature.ExecuteAsync(request, emitter, ct);
@@ -67,7 +67,7 @@ public static class FeatureHandler
         async (
             [AsParameters] TRequest request,
             IMutationFeature<TRequest, TResult> feature,
-            IWideEventEmitter? emitter,
+            IWideEventEmitter emitter,
             CancellationToken ct) =>
         {
             var result = await feature.ExecuteAsync(request, emitter, ct);
@@ -86,7 +86,7 @@ public static class FeatureHandler
         async (
             [AsParameters] TRequest request,
             IMutationFeature<TRequest, TResult> feature,
-            IWideEventEmitter? emitter,
+            IWideEventEmitter emitter,
             CancellationToken ct) =>
         {
             var result = await feature.ExecuteAsync(request, emitter, ct);
@@ -103,7 +103,7 @@ public static class FeatureHandler
         async (
             [AsParameters] TRequest request,
             IMutationFeature<TRequest, Unit> feature,
-            IWideEventEmitter? emitter,
+            IWideEventEmitter emitter,
             CancellationToken ct) =>
         {
             var result = await feature.ExecuteAsync(request, emitter, ct);
@@ -122,7 +122,7 @@ public static class FeatureHandler
         async (
             [AsParameters] TRequest request,
             IMutationFeature<TRequest, TResult> feature,
-            IWideEventEmitter? emitter,
+            IWideEventEmitter emitter,
             CancellationToken ct) =>
         {
             var result = await feature.ExecuteAsync(request, emitter, ct);

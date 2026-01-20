@@ -8,22 +8,6 @@ namespace VsaResults;
 public static class FeatureExecutionExtensions
 {
     /// <summary>
-    /// Executes a mutation feature through the full pipeline without wide event emission.
-    /// Validate → Enforce Requirements → Execute Mutation → Run Side Effects.
-    /// </summary>
-    /// <typeparam name="TRequest">The type of the request.</typeparam>
-    /// <typeparam name="TResult">The type of the result.</typeparam>
-    /// <param name="feature">The feature to execute.</param>
-    /// <param name="request">The request to process.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>The result or errors from execution.</returns>
-    public static Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
-        this IMutationFeature<TRequest, TResult> feature,
-        TRequest request,
-        CancellationToken ct)
-        => feature.ExecuteAsync(request, (IWideEventEmitter?)null, ct);
-
-    /// <summary>
     /// Executes a mutation feature through the full pipeline:
     /// Validate → Enforce Requirements → Execute Mutation → Run Side Effects → Emit Wide Event.
     /// </summary>
@@ -31,13 +15,13 @@ public static class FeatureExecutionExtensions
     /// <typeparam name="TResult">The type of the result.</typeparam>
     /// <param name="feature">The feature to execute.</param>
     /// <param name="request">The request to process.</param>
-    /// <param name="emitter">Optional wide event emitter. If null, no event is emitted.</param>
+    /// <param name="emitter">The wide event emitter for observability.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The result or errors from execution.</returns>
     public static async Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
         this IMutationFeature<TRequest, TResult> feature,
         TRequest request,
-        IWideEventEmitter? emitter,
+        IWideEventEmitter emitter,
         CancellationToken ct = default)
     {
         var featureName = feature.GetType().DeclaringType?.Name ?? feature.GetType().Name;
@@ -64,7 +48,7 @@ public static class FeatureExecutionExtensions
             if (validated.IsError)
             {
                 wideEvent.WithResultContext(validated.Context);
-                EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).ValidationFailure(validated.Errors));
+                emitter.Emit(wideEvent.WithFeatureContext(context).ValidationFailure(validated.Errors));
                 return new VsaResult<TResult>(validated.Errors, validated._context);
             }
 
@@ -77,7 +61,7 @@ public static class FeatureExecutionExtensions
             if (enforced.IsError)
             {
                 wideEvent.WithResultContext(enforced.Context);
-                EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).RequirementsFailure(enforced.Errors));
+                emitter.Emit(wideEvent.WithFeatureContext(context).RequirementsFailure(enforced.Errors));
                 return new VsaResult<TResult>(enforced.Errors, enforced._context);
             }
 
@@ -95,7 +79,7 @@ public static class FeatureExecutionExtensions
             if (result.IsError)
             {
                 wideEvent.WithResultContext(result.Context);
-                EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).ExecutionFailure(result.Errors));
+                emitter.Emit(wideEvent.WithFeatureContext(context).ExecutionFailure(result.Errors));
                 return result;
             }
 
@@ -108,36 +92,20 @@ public static class FeatureExecutionExtensions
             if (effects.IsError)
             {
                 wideEvent.WithResultContext(effects.Context);
-                EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).SideEffectsFailure(effects.Errors));
+                emitter.Emit(wideEvent.WithFeatureContext(context).SideEffectsFailure(effects.Errors));
                 return new VsaResult<TResult>(effects.Errors, effects._context);
             }
 
             wideEvent.WithResultContext(result.Context);
-            EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).Success());
+            emitter.Emit(wideEvent.WithFeatureContext(context).Success());
             return result;
         }
         catch (Exception ex)
         {
-            EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).Exception(ex));
+            emitter.Emit(wideEvent.WithFeatureContext(context).Exception(ex));
             throw;
         }
     }
-
-    /// <summary>
-    /// Executes a query feature through the pipeline without wide event emission.
-    /// Validate → Enforce Requirements → Execute Query.
-    /// </summary>
-    /// <typeparam name="TRequest">The type of the request.</typeparam>
-    /// <typeparam name="TResult">The type of the result.</typeparam>
-    /// <param name="feature">The feature to execute.</param>
-    /// <param name="request">The request to process.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>The result or errors from execution.</returns>
-    public static Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
-        this IQueryFeature<TRequest, TResult> feature,
-        TRequest request,
-        CancellationToken ct)
-        => feature.ExecuteAsync(request, (IWideEventEmitter?)null, ct);
 
     /// <summary>
     /// Executes a query feature through the pipeline:
@@ -147,13 +115,13 @@ public static class FeatureExecutionExtensions
     /// <typeparam name="TResult">The type of the result.</typeparam>
     /// <param name="feature">The feature to execute.</param>
     /// <param name="request">The request to process.</param>
-    /// <param name="emitter">Optional wide event emitter. If null, no event is emitted.</param>
+    /// <param name="emitter">The wide event emitter for observability.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The result or errors from execution.</returns>
     public static async Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
         this IQueryFeature<TRequest, TResult> feature,
         TRequest request,
-        IWideEventEmitter? emitter,
+        IWideEventEmitter emitter,
         CancellationToken ct = default)
     {
         var featureName = feature.GetType().DeclaringType?.Name ?? feature.GetType().Name;
@@ -180,7 +148,7 @@ public static class FeatureExecutionExtensions
             if (validated.IsError)
             {
                 wideEvent.WithResultContext(validated.Context);
-                EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).ValidationFailure(validated.Errors));
+                emitter.Emit(wideEvent.WithFeatureContext(context).ValidationFailure(validated.Errors));
                 return new VsaResult<TResult>(validated.Errors, validated._context);
             }
 
@@ -193,7 +161,7 @@ public static class FeatureExecutionExtensions
             if (enforced.IsError)
             {
                 wideEvent.WithResultContext(enforced.Context);
-                EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).RequirementsFailure(enforced.Errors));
+                emitter.Emit(wideEvent.WithFeatureContext(context).RequirementsFailure(enforced.Errors));
                 return new VsaResult<TResult>(enforced.Errors, enforced._context);
             }
 
@@ -211,17 +179,17 @@ public static class FeatureExecutionExtensions
             if (result.IsError)
             {
                 wideEvent.WithResultContext(result.Context);
-                EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).ExecutionFailure(result.Errors));
+                emitter.Emit(wideEvent.WithFeatureContext(context).ExecutionFailure(result.Errors));
                 return result;
             }
 
             wideEvent.WithResultContext(result.Context);
-            EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).Success());
+            emitter.Emit(wideEvent.WithFeatureContext(context).Success());
             return result;
         }
         catch (Exception ex)
         {
-            EmitWideEvent(emitter, wideEvent.WithFeatureContext(context).Exception(ex));
+            emitter.Emit(wideEvent.WithFeatureContext(context).Exception(ex));
             throw;
         }
     }
@@ -411,11 +379,6 @@ public static class FeatureExecutionExtensions
             emitter.Emit(builder.WithFeatureContext(context).Exception(ex));
             throw;
         }
-    }
-
-    private static void EmitWideEvent(IWideEventEmitter? emitter, FeatureWideEvent wideEvent)
-    {
-        emitter?.Emit(wideEvent);
     }
 
     /// <summary>
