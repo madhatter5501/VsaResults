@@ -8,6 +8,22 @@ namespace VsaResults;
 public static class FeatureExecutionExtensions
 {
     /// <summary>
+    /// Executes a mutation feature through the full pipeline without wide event emission.
+    /// Validate → Enforce Requirements → Execute Mutation → Run Side Effects.
+    /// </summary>
+    /// <typeparam name="TRequest">The type of the request.</typeparam>
+    /// <typeparam name="TResult">The type of the result.</typeparam>
+    /// <param name="feature">The feature to execute.</param>
+    /// <param name="request">The request to process.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The result or errors from execution.</returns>
+    public static Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
+        this IMutationFeature<TRequest, TResult> feature,
+        TRequest request,
+        CancellationToken ct)
+        => feature.ExecuteAsync(request, (IWideEventEmitter?)null, ct);
+
+    /// <summary>
     /// Executes a mutation feature through the full pipeline:
     /// Validate → Enforce Requirements → Execute Mutation → Run Side Effects → Emit Wide Event.
     /// </summary>
@@ -21,7 +37,7 @@ public static class FeatureExecutionExtensions
     public static async Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
         this IMutationFeature<TRequest, TResult> feature,
         TRequest request,
-        IWideEventEmitter? emitter = null,
+        IWideEventEmitter? emitter,
         CancellationToken ct = default)
     {
         var featureName = feature.GetType().DeclaringType?.Name ?? feature.GetType().Name;
@@ -108,6 +124,22 @@ public static class FeatureExecutionExtensions
     }
 
     /// <summary>
+    /// Executes a query feature through the pipeline without wide event emission.
+    /// Validate → Enforce Requirements → Execute Query.
+    /// </summary>
+    /// <typeparam name="TRequest">The type of the request.</typeparam>
+    /// <typeparam name="TResult">The type of the result.</typeparam>
+    /// <param name="feature">The feature to execute.</param>
+    /// <param name="request">The request to process.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The result or errors from execution.</returns>
+    public static Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
+        this IQueryFeature<TRequest, TResult> feature,
+        TRequest request,
+        CancellationToken ct)
+        => feature.ExecuteAsync(request, (IWideEventEmitter?)null, ct);
+
+    /// <summary>
     /// Executes a query feature through the pipeline:
     /// Validate → Enforce Requirements → Execute Query → Emit Wide Event.
     /// </summary>
@@ -121,7 +153,7 @@ public static class FeatureExecutionExtensions
     public static async Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
         this IQueryFeature<TRequest, TResult> feature,
         TRequest request,
-        IWideEventEmitter? emitter = null,
+        IWideEventEmitter? emitter,
         CancellationToken ct = default)
     {
         var featureName = feature.GetType().DeclaringType?.Name ?? feature.GetType().Name;
