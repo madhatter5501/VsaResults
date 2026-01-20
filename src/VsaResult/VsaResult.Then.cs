@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace VsaResults;
 
 public readonly partial record struct VsaResult<TValue> : IVsaResult<TValue>
