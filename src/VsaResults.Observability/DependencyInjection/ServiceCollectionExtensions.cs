@@ -30,10 +30,7 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         Action<PiiMaskerOptions> configure)
     {
-        var options = new PiiMaskerOptions();
-        configure(options);
-
-        services.AddSingleton(options);
+        services.Configure(configure);
         services.TryAddSingleton<IPiiMasker, DefaultPiiMasker>();
 
         return services;

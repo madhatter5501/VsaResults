@@ -44,22 +44,22 @@ public sealed class DefaultPiiMasker : IPiiMasker
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultPiiMasker"/> class with the specified options.
-    /// </summary>
-    /// <param name="options">The masking configuration options.</param>
-    public DefaultPiiMasker(PiiMaskerOptions options)
-    {
-        _options = options;
-        _salt = options.Salt ?? Environment.GetEnvironmentVariable(MaskSaltEnvVar) ?? string.Empty;
-    }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="DefaultPiiMasker"/> class with options from DI.
     /// </summary>
     /// <param name="options">The masking configuration options wrapped in IOptions.</param>
     public DefaultPiiMasker(IOptions<PiiMaskerOptions> options)
         : this(options.Value)
     {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultPiiMasker"/> class with the specified options.
+    /// </summary>
+    /// <param name="options">The masking configuration options.</param>
+    internal DefaultPiiMasker(PiiMaskerOptions options)
+    {
+        _options = options;
+        _salt = options.Salt ?? Environment.GetEnvironmentVariable(MaskSaltEnvVar) ?? string.Empty;
     }
 
     /// <inheritdoc />
