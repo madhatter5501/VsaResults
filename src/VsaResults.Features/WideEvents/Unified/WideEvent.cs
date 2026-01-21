@@ -76,6 +76,9 @@ public sealed class WideEvent
     /// <summary>Gets or sets the version of the service.</summary>
     public string? ServiceVersion { get; set; }
 
+    /// <summary>Gets or sets the git commit hash for deployment correlation.</summary>
+    public string? CommitHash { get; set; }
+
     /// <summary>Gets or sets the environment name (production, staging, etc.).</summary>
     public string? Environment { get; set; }
 

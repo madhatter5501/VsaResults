@@ -16,6 +16,8 @@ public sealed partial class WideEventBuilder
         {
             ServiceName = System.Environment.GetEnvironmentVariable("SERVICE_NAME"),
             ServiceVersion = System.Environment.GetEnvironmentVariable("SERVICE_VERSION"),
+            CommitHash = System.Environment.GetEnvironmentVariable("COMMIT_SHA")
+                ?? System.Environment.GetEnvironmentVariable("GIT_COMMIT"),
             Environment = System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
                 ?? System.Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"),
             DeploymentId = System.Environment.GetEnvironmentVariable("DEPLOYMENT_ID"),
@@ -56,6 +58,7 @@ public sealed partial class WideEventBuilder
             ParentSpanId = activity?.ParentSpanId.ToString(),
             ServiceName = env.ServiceName,
             ServiceVersion = env.ServiceVersion,
+            CommitHash = env.CommitHash,
             Environment = env.Environment,
             DeploymentId = env.DeploymentId,
             Region = env.Region,
@@ -746,6 +749,7 @@ public sealed partial class WideEventBuilder
     {
         public string? ServiceName { get; init; }
         public string? ServiceVersion { get; init; }
+        public string? CommitHash { get; init; }
         public string? Environment { get; init; }
         public string? DeploymentId { get; init; }
         public string? Region { get; init; }
