@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -194,10 +195,28 @@ public class RabbitMqReceiveEndpoint : IReceiveEndpoint
 
     private async Task OnMessageReceivedAsync(object sender, BasicDeliverEventArgs ea)
     {
+        // Extract trace context from message headers for distributed tracing
+        var parentContext = ExtractTraceContext(ea.BasicProperties.Headers);
+
+        // Start activity for consumer processing, linked to producer trace
+        using var activity = RabbitMqDiagnostics.Source.StartActivity(
+            $"{Name} receive",
+            ActivityKind.Consumer,
+            parentContext);
+
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingSystem, RabbitMqDiagnostics.Values.MessagingSystemRabbitmq);
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingDestinationName, Name);
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingDestinationKind, RabbitMqDiagnostics.Values.DestinationKindQueue);
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingOperation, "receive");
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingMessagePayloadSize, ea.Body.Length);
+
         try
         {
             // Parse the message envelope from RabbitMQ properties
             var envelope = ParseEnvelope(ea);
+
+            activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingMessageId, envelope.MessageId.ToString());
+            activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingConversationId, envelope.CorrelationId.ToString());
 
             _logger?.LogDebug(
                 "Received message {MessageId} on endpoint {Endpoint}",
@@ -207,6 +226,8 @@ public class RabbitMqReceiveEndpoint : IReceiveEndpoint
             // Process the message
             await ProcessEnvelopeAsync(envelope, CancellationToken.None);
 
+            activity?.SetStatus(ActivityStatusCode.Ok);
+
             // Acknowledge the message
             if (_channel is not null)
             {
@@ -215,6 +236,9 @@ public class RabbitMqReceiveEndpoint : IReceiveEndpoint
         }
         catch (Exception ex)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("error.type", ex.GetType().FullName);
+
             _logger?.LogError(ex, "Error processing message on endpoint {Endpoint}", Name);
 
             // Negative acknowledge - requeue for retry
@@ -223,6 +247,43 @@ public class RabbitMqReceiveEndpoint : IReceiveEndpoint
                 await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
             }
         }
+    }
+
+    /// <summary>
+    /// Extracts W3C trace context from message headers for distributed tracing.
+    /// </summary>
+    private static ActivityContext ExtractTraceContext(IDictionary<string, object?>? headers)
+    {
+        if (headers is null)
+        {
+            return default;
+        }
+
+        // Extract traceparent header (W3C Trace Context format)
+        if (!headers.TryGetValue("traceparent", out var traceparentObj) || traceparentObj is null)
+        {
+            return default;
+        }
+
+        var traceparent = traceparentObj switch
+        {
+            byte[] bytes => Encoding.UTF8.GetString(bytes),
+            string str => str,
+            _ => traceparentObj.ToString()
+        };
+
+        if (string.IsNullOrEmpty(traceparent))
+        {
+            return default;
+        }
+
+        // Parse the traceparent header and create ActivityContext
+        if (ActivityContext.TryParse(traceparent, null, out var context))
+        {
+            return context;
+        }
+
+        return default;
     }
 
     private MessageEnvelope ParseEnvelope(BasicDeliverEventArgs ea)
