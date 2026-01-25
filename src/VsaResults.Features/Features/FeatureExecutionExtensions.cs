@@ -43,10 +43,13 @@ public static class FeatureExecutionExtensions
 
         try
         {
-            // Validation stage
+            // Validation stage (with child span)
             var validator = feature.Validator ?? NoOpValidator<TRequest>.Instance;
             wideEvent.StartStage(StageNames.Validation, validator.GetType(), MethodNames.ValidateAsync);
-            var (validated, validationMs) = await MeasureAsync(() => validator.ValidateAsync(request, ct)).ConfigureAwait(false);
+            var (validated, validationMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.Validation,
+                () => validator.ValidateAsync(request, ct)).ConfigureAwait(false);
             wideEvent.RecordValidation();
             RecordStageEvent(activity, StageNames.Validation, validationMs);
 
@@ -58,10 +61,13 @@ public static class FeatureExecutionExtensions
                 return new VsaResult<TResult>(validated.Errors, validated._context);
             }
 
-            // Requirements stage
+            // Requirements stage (with child span)
             var requirements = feature.Requirements ?? NoOpRequirements<TRequest>.Instance;
             wideEvent.StartStage(StageNames.Requirements, requirements.GetType(), MethodNames.EnforceAsync);
-            var (enforced, requirementsMs) = await MeasureAsync(() => requirements.EnforceAsync(validated.Value, ct)).ConfigureAwait(false);
+            var (enforced, requirementsMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.Requirements,
+                () => requirements.EnforceAsync(validated.Value, ct)).ConfigureAwait(false);
             wideEvent.RecordRequirements();
             RecordStageEvent(activity, StageNames.Requirements, requirementsMs);
 
@@ -78,10 +84,13 @@ public static class FeatureExecutionExtensions
             // Enrich with request metadata (IP, user agent, etc.)
             EnrichWithRequestMetadata(context);
 
-            // Execution stage
+            // Execution stage (with child span)
             var mutator = feature.Mutator ?? throw new InvalidOperationException(ExceptionMessages.MutatorRequired);
             wideEvent.StartStage(StageNames.Execution, mutator.GetType(), MethodNames.ExecuteAsync);
-            var (result, executionMs) = await MeasureAsync(() => mutator.ExecuteAsync(context, ct)).ConfigureAwait(false);
+            var (result, executionMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.Execution,
+                () => mutator.ExecuteAsync(context, ct)).ConfigureAwait(false);
             wideEvent.RecordExecution();
             RecordStageEvent(activity, StageNames.Execution, executionMs);
 
@@ -93,10 +102,13 @@ public static class FeatureExecutionExtensions
                 return result;
             }
 
-            // Side effects stage
+            // Side effects stage (with child span)
             var sideEffects = feature.SideEffects ?? NoOpSideEffects<TRequest>.Instance;
             wideEvent.StartStage(StageNames.SideEffects, sideEffects.GetType(), MethodNames.ExecuteAsync);
-            var (effects, sideEffectsMs) = await MeasureAsync(() => sideEffects.ExecuteAsync(context, ct)).ConfigureAwait(false);
+            var (effects, sideEffectsMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.SideEffects,
+                () => sideEffects.ExecuteAsync(context, ct)).ConfigureAwait(false);
             wideEvent.RecordSideEffects();
             RecordStageEvent(activity, StageNames.SideEffects, sideEffectsMs);
 
@@ -154,10 +166,13 @@ public static class FeatureExecutionExtensions
 
         try
         {
-            // Validation stage
+            // Validation stage (with child span)
             var validator = feature.Validator ?? NoOpValidator<TRequest>.Instance;
             wideEvent.StartStage(StageNames.Validation, validator.GetType(), MethodNames.ValidateAsync);
-            var (validated, validationMs) = await MeasureAsync(() => validator.ValidateAsync(request, ct)).ConfigureAwait(false);
+            var (validated, validationMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.Validation,
+                () => validator.ValidateAsync(request, ct)).ConfigureAwait(false);
             wideEvent.RecordValidation();
             RecordStageEvent(activity, StageNames.Validation, validationMs);
 
@@ -169,10 +184,13 @@ public static class FeatureExecutionExtensions
                 return new VsaResult<TResult>(validated.Errors, validated._context);
             }
 
-            // Requirements stage
+            // Requirements stage (with child span)
             var requirements = feature.Requirements ?? NoOpRequirements<TRequest>.Instance;
             wideEvent.StartStage(StageNames.Requirements, requirements.GetType(), MethodNames.EnforceAsync);
-            var (enforced, requirementsMs) = await MeasureAsync(() => requirements.EnforceAsync(validated.Value, ct)).ConfigureAwait(false);
+            var (enforced, requirementsMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.Requirements,
+                () => requirements.EnforceAsync(validated.Value, ct)).ConfigureAwait(false);
             wideEvent.RecordRequirements();
             RecordStageEvent(activity, StageNames.Requirements, requirementsMs);
 
@@ -189,10 +207,13 @@ public static class FeatureExecutionExtensions
             // Enrich with request metadata (IP, user agent, etc.)
             EnrichWithRequestMetadata(context);
 
-            // Execution stage
+            // Execution stage (with child span)
             var query = feature.Query ?? throw new InvalidOperationException(ExceptionMessages.QueryRequired);
             wideEvent.StartStage(StageNames.Execution, query.GetType(), MethodNames.ExecuteAsync);
-            var (result, executionMs) = await MeasureAsync(() => query.ExecuteAsync(context, ct)).ConfigureAwait(false);
+            var (result, executionMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.Execution,
+                () => query.ExecuteAsync(context, ct)).ConfigureAwait(false);
             wideEvent.RecordExecution();
             RecordStageEvent(activity, StageNames.Execution, executionMs);
 
@@ -250,10 +271,13 @@ public static class FeatureExecutionExtensions
 
         try
         {
-            // Validation stage
+            // Validation stage (with child span)
             var validator = feature.Validator ?? NoOpValidator<TRequest>.Instance;
             builder.StartStage(StageNames.Validation, validator.GetType(), MethodNames.ValidateAsync);
-            var (validated, validationMs) = await MeasureAsync(() => validator.ValidateAsync(request, ct)).ConfigureAwait(false);
+            var (validated, validationMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.Validation,
+                () => validator.ValidateAsync(request, ct)).ConfigureAwait(false);
             builder.RecordValidation();
             RecordStageEvent(activity, StageNames.Validation, validationMs);
 
@@ -265,10 +289,13 @@ public static class FeatureExecutionExtensions
                 return new VsaResult<TResult>(validated.Errors, validated._context);
             }
 
-            // Requirements stage
+            // Requirements stage (with child span)
             var requirements = feature.Requirements ?? NoOpRequirements<TRequest>.Instance;
             builder.StartStage(StageNames.Requirements, requirements.GetType(), MethodNames.EnforceAsync);
-            var (enforced, requirementsMs) = await MeasureAsync(() => requirements.EnforceAsync(validated.Value, ct)).ConfigureAwait(false);
+            var (enforced, requirementsMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.Requirements,
+                () => requirements.EnforceAsync(validated.Value, ct)).ConfigureAwait(false);
             builder.RecordRequirements();
             RecordStageEvent(activity, StageNames.Requirements, requirementsMs);
 
@@ -285,10 +312,13 @@ public static class FeatureExecutionExtensions
             // Enrich with request metadata (IP, user agent, etc.)
             EnrichWithRequestMetadata(context);
 
-            // Execution stage
+            // Execution stage (with child span)
             var mutator = feature.Mutator ?? throw new InvalidOperationException(ExceptionMessages.MutatorRequired);
             builder.StartStage(StageNames.Execution, mutator.GetType(), MethodNames.ExecuteAsync);
-            var (result, executionMs) = await MeasureAsync(() => mutator.ExecuteAsync(context, ct)).ConfigureAwait(false);
+            var (result, executionMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.Execution,
+                () => mutator.ExecuteAsync(context, ct)).ConfigureAwait(false);
             builder.RecordExecution();
             RecordStageEvent(activity, StageNames.Execution, executionMs);
 
@@ -300,10 +330,13 @@ public static class FeatureExecutionExtensions
                 return result;
             }
 
-            // Side effects stage
+            // Side effects stage (with child span)
             var sideEffects = feature.SideEffects ?? NoOpSideEffects<TRequest>.Instance;
             builder.StartStage(StageNames.SideEffects, sideEffects.GetType(), MethodNames.ExecuteAsync);
-            var (effects, sideEffectsMs) = await MeasureAsync(() => sideEffects.ExecuteAsync(context, ct)).ConfigureAwait(false);
+            var (effects, sideEffectsMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.SideEffects,
+                () => sideEffects.ExecuteAsync(context, ct)).ConfigureAwait(false);
             builder.RecordSideEffects();
             RecordStageEvent(activity, StageNames.SideEffects, sideEffectsMs);
 
@@ -361,10 +394,13 @@ public static class FeatureExecutionExtensions
 
         try
         {
-            // Validation stage
+            // Validation stage (with child span)
             var validator = feature.Validator ?? NoOpValidator<TRequest>.Instance;
             builder.StartStage(StageNames.Validation, validator.GetType(), MethodNames.ValidateAsync);
-            var (validated, validationMs) = await MeasureAsync(() => validator.ValidateAsync(request, ct)).ConfigureAwait(false);
+            var (validated, validationMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.Validation,
+                () => validator.ValidateAsync(request, ct)).ConfigureAwait(false);
             builder.RecordValidation();
             RecordStageEvent(activity, StageNames.Validation, validationMs);
 
@@ -376,10 +412,13 @@ public static class FeatureExecutionExtensions
                 return new VsaResult<TResult>(validated.Errors, validated._context);
             }
 
-            // Requirements stage
+            // Requirements stage (with child span)
             var requirements = feature.Requirements ?? NoOpRequirements<TRequest>.Instance;
             builder.StartStage(StageNames.Requirements, requirements.GetType(), MethodNames.EnforceAsync);
-            var (enforced, requirementsMs) = await MeasureAsync(() => requirements.EnforceAsync(validated.Value, ct)).ConfigureAwait(false);
+            var (enforced, requirementsMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.Requirements,
+                () => requirements.EnforceAsync(validated.Value, ct)).ConfigureAwait(false);
             builder.RecordRequirements();
             RecordStageEvent(activity, StageNames.Requirements, requirementsMs);
 
@@ -396,10 +435,13 @@ public static class FeatureExecutionExtensions
             // Enrich with request metadata (IP, user agent, etc.)
             EnrichWithRequestMetadata(context);
 
-            // Execution stage
+            // Execution stage (with child span)
             var query = feature.Query ?? throw new InvalidOperationException(ExceptionMessages.QueryRequired);
             builder.StartStage(StageNames.Execution, query.GetType(), MethodNames.ExecuteAsync);
-            var (result, executionMs) = await MeasureAsync(() => query.ExecuteAsync(context, ct)).ConfigureAwait(false);
+            var (result, executionMs) = await ExecuteStageAsync(
+                featureName,
+                StageNames.Execution,
+                () => query.ExecuteAsync(context, ct)).ConfigureAwait(false);
             builder.RecordExecution();
             RecordStageEvent(activity, StageNames.Execution, executionMs);
 
@@ -480,12 +522,8 @@ public static class FeatureExecutionExtensions
 
     private static void RecordStageEvent(Activity? activity, string stage, double? durationMs)
     {
-        if (activity == null)
-        {
-            return;
-        }
-
-        if (durationMs is null)
+        // Legacy: keep events for backwards compatibility with existing log analysis
+        if (activity == null || durationMs is null)
         {
             return;
         }
@@ -497,6 +535,41 @@ public static class FeatureExecutionExtensions
         };
 
         activity.AddEvent(new ActivityEvent("feature.stage", tags: tags));
+    }
+
+    /// <summary>
+    /// Executes a stage within a child span for proper trace visualization.
+    /// </summary>
+    private static async Task<(TResult Result, double DurationMs)> ExecuteStageAsync<TResult>(
+        string featureName,
+        string stage,
+        Func<Task<TResult>> action)
+    {
+        using var stageActivity = FeatureActivitySource.StartActivity(
+            $"{featureName}.{stage}",
+            ActivityKind.Internal);
+
+        stageActivity?.SetTag("feature.stage", stage);
+
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            var result = await action().ConfigureAwait(false);
+            stopwatch.Stop();
+
+            stageActivity?.SetTag("duration_ms", stopwatch.Elapsed.TotalMilliseconds);
+            stageActivity?.SetTag("stage.outcome", "success");
+
+            return (result, stopwatch.Elapsed.TotalMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            stageActivity?.SetTag("duration_ms", stopwatch.Elapsed.TotalMilliseconds);
+            stageActivity?.SetTag("stage.outcome", "error");
+            stageActivity?.SetTag("error.message", ex.Message);
+            throw;
+        }
     }
 
     private static void RecordOutcome(Activity? activity, string outcome)
