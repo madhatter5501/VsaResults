@@ -251,6 +251,7 @@ public class RabbitMqReceiveEndpoint : IReceiveEndpoint
 
     /// <summary>
     /// Extracts W3C trace context from message headers for distributed tracing.
+    /// Supports both W3C traceparent header and VsaResults custom x-x-trace-id/x-x-span-id headers.
     /// </summary>
     private static ActivityContext ExtractTraceContext(IDictionary<string, object?>? headers)
     {
@@ -259,28 +260,61 @@ public class RabbitMqReceiveEndpoint : IReceiveEndpoint
             return default;
         }
 
-        // Extract traceparent header (W3C Trace Context format)
-        if (!headers.TryGetValue("traceparent", out var traceparentObj) || traceparentObj is null)
+        // First, try W3C traceparent header
+        if (headers.TryGetValue("traceparent", out var traceparentObj) && traceparentObj is not null)
         {
-            return default;
+            var traceparent = GetHeaderString(traceparentObj);
+
+            if (!string.IsNullOrEmpty(traceparent))
+            {
+                // Extract tracestate if present
+                string? tracestate = null;
+                if (headers.TryGetValue("tracestate", out var tracestateObj) && tracestateObj is not null)
+                {
+                    tracestate = GetHeaderString(tracestateObj);
+                }
+
+                if (ActivityContext.TryParse(traceparent, tracestate, out var parsedContext))
+                {
+                    // Create new context with isRemote=true to indicate this came from another process
+                    return new ActivityContext(
+                        parsedContext.TraceId,
+                        parsedContext.SpanId,
+                        parsedContext.TraceFlags,
+                        parsedContext.TraceState,
+                        isRemote: true);
+                }
+            }
         }
 
-        var traceparent = traceparentObj switch
+        // Fallback: Try VsaResults custom headers (x-x-trace-id, x-x-span-id)
+        // These are double-prefixed because MessageHeaders uses x- prefix keys and
+        // RabbitMqPublishTransport adds another x- prefix for custom headers
+        if (headers.TryGetValue("x-x-trace-id", out var traceIdObj) &&
+            headers.TryGetValue("x-x-span-id", out var spanIdObj) &&
+            traceIdObj is not null && spanIdObj is not null)
         {
-            byte[] bytes => Encoding.UTF8.GetString(bytes),
-            string str => str,
-            _ => traceparentObj.ToString()
-        };
+            var traceIdStr = GetHeaderString(traceIdObj);
+            var spanIdStr = GetHeaderString(spanIdObj);
 
-        if (string.IsNullOrEmpty(traceparent))
-        {
-            return default;
-        }
+            // Validate format: trace ID should be 32 hex chars, span ID should be 16 hex chars
+            if (!string.IsNullOrEmpty(traceIdStr) && !string.IsNullOrEmpty(spanIdStr) &&
+                traceIdStr.Length == 32 && spanIdStr.Length == 16)
+            {
+                // Construct W3C traceparent format: {version}-{trace-id}-{span-id}-{flags}
+                // version=00, flags=01 (sampled)
+                var syntheticTraceparent = $"00-{traceIdStr}-{spanIdStr}-01";
 
-        // Parse the traceparent header and create ActivityContext
-        if (ActivityContext.TryParse(traceparent, null, out var context))
-        {
-            return context;
+                if (ActivityContext.TryParse(syntheticTraceparent, traceState: null, out var parsedContext))
+                {
+                    return new ActivityContext(
+                        parsedContext.TraceId,
+                        parsedContext.SpanId,
+                        parsedContext.TraceFlags,
+                        parsedContext.TraceState,
+                        isRemote: true);
+                }
+            }
         }
 
         return default;
