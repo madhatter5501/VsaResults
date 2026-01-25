@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using VsaResults;
@@ -35,14 +36,39 @@ public class RabbitMqPublishTransport : IPublishTransport
         CancellationToken ct = default)
         where TMessage : class, IEvent
     {
+        var exchangeName = GetExchangeName<TMessage>();
+
+        // Start activity for tracing
+        using var activity = RabbitMqDiagnostics.Source.StartActivity(
+            $"{exchangeName} publish",
+            ActivityKind.Producer);
+
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingSystem, RabbitMqDiagnostics.Values.MessagingSystemRabbitmq);
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingDestinationName, exchangeName);
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingDestinationKind, RabbitMqDiagnostics.Values.DestinationKindExchange);
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingOperation, RabbitMqDiagnostics.Values.OperationPublish);
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingMessageId, envelope.MessageId.ToString());
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingConversationId, envelope.CorrelationId.ToString());
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingMessagePayloadSize, envelope.Body.Length);
+
         try
         {
-            var exchangeName = GetExchangeName<TMessage>();
-
             // Declare the exchange if we haven't already
             await EnsureExchangeDeclaredAsync(exchangeName, ct);
 
-            // Create message properties
+            // Create message properties with trace context propagation
+            var headers = ConvertHeaders(envelope);
+
+            // Propagate trace context via W3C traceparent header
+            if (activity is not null)
+            {
+                headers["traceparent"] = activity.Id;
+                if (activity.TraceStateString is not null)
+                {
+                    headers["tracestate"] = activity.TraceStateString;
+                }
+            }
+
             var properties = new BasicProperties
             {
                 MessageId = envelope.MessageId.ToString(),
@@ -51,7 +77,7 @@ public class RabbitMqPublishTransport : IPublishTransport
                 DeliveryMode = _options.PersistentMessages ? DeliveryModes.Persistent : DeliveryModes.Transient,
                 Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
                 Type = string.Join(";", envelope.MessageTypes),
-                Headers = ConvertHeaders(envelope)
+                Headers = headers
             };
 
             // Publish to the exchange (fanout, so routing key is empty)
@@ -63,6 +89,8 @@ public class RabbitMqPublishTransport : IPublishTransport
                 body: envelope.Body,
                 cancellationToken: ct);
 
+            activity?.SetStatus(ActivityStatusCode.Ok);
+
             _logger?.LogDebug(
                 "Published {MessageType} to exchange {Exchange}",
                 typeof(TMessage).Name,
@@ -72,6 +100,8 @@ public class RabbitMqPublishTransport : IPublishTransport
         }
         catch (Exception ex)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("error.type", ex.GetType().FullName);
             _logger?.LogError(ex, "Failed to publish {MessageType}", typeof(TMessage).Name);
             return MessagingErrors.TransportError($"Failed to publish message: {ex.Message}");
         }

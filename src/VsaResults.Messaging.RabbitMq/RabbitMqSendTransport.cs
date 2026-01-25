@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using VsaResults;
@@ -40,14 +41,40 @@ public class RabbitMqSendTransport : ISendTransport
         CancellationToken ct = default)
         where TMessage : class, IMessage
     {
+        var queueName = Address.Name;
+
+        // Start activity for tracing
+        using var activity = RabbitMqDiagnostics.Source.StartActivity(
+            $"{queueName} send",
+            ActivityKind.Producer);
+
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingSystem, RabbitMqDiagnostics.Values.MessagingSystemRabbitmq);
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingDestinationName, queueName);
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingDestinationKind, RabbitMqDiagnostics.Values.DestinationKindQueue);
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingOperation, RabbitMqDiagnostics.Values.OperationSend);
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingMessageId, envelope.MessageId.ToString());
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingConversationId, envelope.CorrelationId.ToString());
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingRabbitmqRoutingKey, queueName);
+        activity?.SetTag(RabbitMqDiagnostics.Tags.MessagingMessagePayloadSize, envelope.Body.Length);
+
         try
         {
-            var queueName = Address.Name;
-
             // Ensure queue exists
             await EnsureQueueDeclaredAsync(queueName, ct);
 
-            // Create message properties
+            // Create message properties with trace context propagation
+            var headers = ConvertHeaders(envelope);
+
+            // Propagate trace context via W3C traceparent header
+            if (activity is not null)
+            {
+                headers["traceparent"] = activity.Id;
+                if (activity.TraceStateString is not null)
+                {
+                    headers["tracestate"] = activity.TraceStateString;
+                }
+            }
+
             var properties = new BasicProperties
             {
                 MessageId = envelope.MessageId.ToString(),
@@ -56,7 +83,7 @@ public class RabbitMqSendTransport : ISendTransport
                 DeliveryMode = _options.PersistentMessages ? DeliveryModes.Persistent : DeliveryModes.Transient,
                 Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
                 Type = string.Join(";", envelope.MessageTypes),
-                Headers = ConvertHeaders(envelope)
+                Headers = headers
             };
 
             // Send directly to the queue using default exchange
@@ -69,6 +96,8 @@ public class RabbitMqSendTransport : ISendTransport
                 body: envelope.Body,
                 cancellationToken: ct);
 
+            activity?.SetStatus(ActivityStatusCode.Ok);
+
             _logger?.LogDebug(
                 "Sent {MessageType} to queue {Queue}",
                 typeof(TMessage).Name,
@@ -78,6 +107,8 @@ public class RabbitMqSendTransport : ISendTransport
         }
         catch (Exception ex)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("error.type", ex.GetType().FullName);
             _logger?.LogError(ex, "Failed to send {MessageType} to {Address}", typeof(TMessage).Name, Address);
             return MessagingErrors.DeliveryFailed(Address, ex.Message);
         }
