@@ -21,6 +21,7 @@ The original project is licensed under the MIT License. This fork extends the li
 
 ### A simple, fluent discriminated union of an error or a result.
 
+**⚠️ Note:** This is a work in progress.
 `dotnet add package VsaResults`
 
 </div>
@@ -1228,3 +1229,4 @@ If you have any questions, comments, or suggestions, please open an issue or cre
 # License 🪪
 
 This project is licensed under the terms of the [MIT](https://github.com/mantinband/error-or/blob/main/LICENSE) license.
+
