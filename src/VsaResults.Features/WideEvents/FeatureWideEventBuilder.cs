@@ -295,6 +295,29 @@ public sealed partial class FeatureWideEventBuilder
     }
 
     /// <summary>
+    /// Records the duration of the binding stage.
+    /// </summary>
+    public void RecordBinding()
+    {
+        _event.RequestContext["binding_ms"] = _stageStopwatch.Elapsed.TotalMilliseconds;
+        _stageStopwatch.Reset();
+    }
+
+    /// <summary>
+    /// Marks the feature execution as failed due to request binding.
+    /// </summary>
+    /// <param name="errors">The binding errors.</param>
+    /// <returns>The completed wide event.</returns>
+    public FeatureWideEvent BindingFailure(IReadOnlyList<Error> errors)
+    {
+        _event.Outcome = "binding_failure";
+        _event.FailedAtStage = "binding";
+        PopulateFailureLocation();
+        PopulateErrors(errors);
+        return Build();
+    }
+
+    /// <summary>
     /// Marks the feature execution as failed due to validation.
     /// </summary>
     /// <param name="errors">The validation errors.</param>
