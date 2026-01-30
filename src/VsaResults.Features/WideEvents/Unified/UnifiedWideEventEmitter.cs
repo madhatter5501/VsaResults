@@ -1,10 +1,10 @@
 namespace VsaResults.WideEvents;
 
 /// <summary>
-/// Default implementation of <see cref="IUnifiedWideEventEmitter"/>.
+/// Default implementation of <see cref="IWideEventEmitter"/>.
 /// Handles scope integration, interceptor pipeline, and routing to sinks.
 /// </summary>
-public sealed class UnifiedWideEventEmitter : IUnifiedWideEventEmitter
+public sealed class UnifiedWideEventEmitter : IWideEventEmitter
 {
     private readonly IWideEventInterceptor[] _interceptors;
     private readonly IWideEventSink _sink;

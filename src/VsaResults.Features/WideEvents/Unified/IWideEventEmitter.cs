@@ -1,10 +1,10 @@
 namespace VsaResults.WideEvents;
 
 /// <summary>
-/// Abstraction for emitting unified wide events.
+/// Abstraction for emitting wide events.
 /// Handles scope integration, interceptor pipeline, and routing to sinks.
 /// </summary>
-public interface IUnifiedWideEventEmitter
+public interface IWideEventEmitter
 {
     /// <summary>
     /// Emits a wide event.
@@ -29,14 +29,14 @@ public interface IUnifiedWideEventEmitter
 /// A null implementation that discards all events.
 /// Used when WideEvents are not configured.
 /// </summary>
-public sealed class NullUnifiedWideEventEmitter : IUnifiedWideEventEmitter
+public sealed class NullWideEventEmitter : IWideEventEmitter
 {
     /// <summary>
     /// Singleton instance.
     /// </summary>
-    public static readonly NullUnifiedWideEventEmitter Instance = new();
+    public static readonly NullWideEventEmitter Instance = new();
 
-    private NullUnifiedWideEventEmitter()
+    private NullWideEventEmitter()
     {
     }
 

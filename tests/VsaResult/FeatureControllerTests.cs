@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using VsaResults;
+using VsaResults.WideEvents;
 
 namespace Tests;
 
@@ -21,9 +22,9 @@ public class FeatureControllerTests
 
     public sealed class TestQuery : IFeatureQuery<TestRequest, TestResult>
     {
-        public Task<VsaResult<TestResult>> ExecuteAsync(TestRequest request, CancellationToken ct = default)
+        public Task<VsaResult<TestResult>> ExecuteAsync(FeatureContext<TestRequest> context, CancellationToken ct = default)
         {
-            return Task.FromResult<VsaResult<TestResult>>(new TestResult($"Queried: {request.Value}"));
+            return Task.FromResult<VsaResult<TestResult>>(new TestResult($"Queried: {context.Request.Value}"));
         }
     }
 
@@ -77,7 +78,7 @@ public class FeatureControllerTests
 
     public sealed class FailingQuery : IFeatureQuery<TestRequest, TestResult>
     {
-        public Task<VsaResult<TestResult>> ExecuteAsync(TestRequest request, CancellationToken ct = default)
+        public Task<VsaResult<TestResult>> ExecuteAsync(FeatureContext<TestRequest> context, CancellationToken ct = default)
         {
             return Task.FromResult<VsaResult<TestResult>>(Error.NotFound("Test.NotFound", "Entity not found"));
         }
@@ -237,8 +238,9 @@ public class FeatureControllerTests
         }
     }
 
-    private static TestController CreateController(IServiceProvider serviceProvider)
+    private static TestController CreateController(MockServiceProvider serviceProvider)
     {
+        serviceProvider.AddService<IWideEventEmitter>(NullWideEventEmitter.Instance);
         var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
         var controller = new TestController
         {

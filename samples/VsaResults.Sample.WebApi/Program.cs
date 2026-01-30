@@ -1,5 +1,6 @@
 using VsaResults;
 using VsaResults.Messaging;
+using VsaResults.WideEvents;
 using VsaResults.Sample.WebApi.Endpoints;
 using VsaResults.Sample.WebApi.Features.Products;
 using VsaResults.Sample.WebApi.Features.Users;
@@ -104,9 +105,8 @@ builder.Services.AddVsaMessaging(cfg =>
 builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
 builder.Services.AddSingleton<IProductRepository, InMemoryProductRepository>();
 
-// Register wide event emitter (required for FeatureHandler)
-// Use NullWideEventEmitter when telemetry is not needed
-builder.Services.AddWideEventEmitter(NullWideEventEmitter.Instance);
+// Register wide events (required for FeatureHandler)
+builder.Services.AddWideEvents();
 
 // Auto-register all features from the sample assembly
 // This scans for IQueryFeature<,> and IMutationFeature<,> implementations

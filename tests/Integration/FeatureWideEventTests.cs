@@ -1,49 +1,51 @@
 using FluentAssertions;
 using VsaResults;
+using VsaResults.WideEvents;
 using Xunit;
 
 namespace Tests.Integration;
 
 /// <summary>
-/// Integration tests for FeatureWideEvent and FeatureWideEventBuilder.
+/// Integration tests for WideEvent and WideEventBuilder (feature execution path).
 /// </summary>
 public class FeatureWideEventBuilderTests
 {
     [Fact]
-    public void FeatureWideEventBuilder_ShouldCaptureBasicContext()
+    public void WideEventBuilder_ShouldCaptureBasicContext()
     {
         // Arrange & Act
-        var builder = FeatureWideEvent.Start("CreateOrder", "Mutation");
+        var builder = WideEvent.StartFeature("CreateOrder", "Mutation");
         var wideEvent = builder.Success();
 
         // Assert
-        wideEvent.FeatureName.Should().Be("CreateOrder");
-        wideEvent.FeatureType.Should().Be("Mutation");
+        wideEvent.Feature.Should().NotBeNull();
+        wideEvent.Feature!.FeatureName.Should().Be("CreateOrder");
+        wideEvent.Feature.FeatureType.Should().Be("Mutation");
         wideEvent.Outcome.Should().Be("success");
         wideEvent.IsSuccess.Should().BeTrue();
         wideEvent.TotalMs.Should().BeGreaterOrEqualTo(0);
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithTypes_ShouldRecordRequestAndResultTypes()
+    public void WideEventBuilder_WithTypes_ShouldRecordRequestAndResultTypes()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("GetOrder", "Query");
+        var builder = WideEvent.StartFeature("GetOrder", "Query");
 
         // Act
         builder.WithTypes<OrderRequest, OrderResult>();
         var wideEvent = builder.Success();
 
         // Assert
-        wideEvent.RequestType.Should().Be("OrderRequest");
-        wideEvent.ResultType.Should().Be("OrderResult");
+        wideEvent.Feature!.RequestType.Should().Be("OrderRequest");
+        wideEvent.Feature.ResultType.Should().Be("OrderResult");
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithContext_ShouldAccumulateContext()
+    public void WideEventBuilder_WithContext_ShouldAccumulateContext()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("ProcessOrder", "Mutation");
+        var builder = WideEvent.StartFeature("ProcessOrder", "Mutation");
         var orderId = Guid.NewGuid();
 
         // Act
@@ -56,21 +58,21 @@ public class FeatureWideEventBuilderTests
         var wideEvent = builder.Success();
 
         // Assert
-        wideEvent.RequestContext.Should().ContainKey("order_id");
-        wideEvent.RequestContext.Should().ContainKey("customer_id");
-        wideEvent.RequestContext.Should().ContainKey("amount");
-        wideEvent.RequestContext.Should().ContainKey("is_priority");
-        wideEvent.RequestContext["order_id"].Should().Be(orderId);
-        wideEvent.RequestContext["customer_id"].Should().Be("CUST-001");
-        wideEvent.RequestContext["amount"].Should().Be(199.99m);
-        wideEvent.RequestContext["is_priority"].Should().Be(true);
+        wideEvent.Context.Should().ContainKey("order_id");
+        wideEvent.Context.Should().ContainKey("customer_id");
+        wideEvent.Context.Should().ContainKey("amount");
+        wideEvent.Context.Should().ContainKey("is_priority");
+        wideEvent.Context["order_id"].Should().Be(orderId);
+        wideEvent.Context["customer_id"].Should().Be("CUST-001");
+        wideEvent.Context["amount"].Should().Be(199.99m);
+        wideEvent.Context["is_priority"].Should().Be(true);
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithRequestContext_ShouldExtractAttributedProperties()
+    public void WideEventBuilder_WithRequestContext_ShouldExtractAttributedProperties()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("CreateUser", "Mutation");
+        var builder = WideEvent.StartFeature("CreateUser", "Mutation");
         var request = new TestRequest
         {
             UserId = Guid.NewGuid(),
@@ -83,17 +85,17 @@ public class FeatureWideEventBuilderTests
         var wideEvent = builder.Success();
 
         // Assert
-        wideEvent.RequestContext.Should().ContainKey("user_id");
-        wideEvent.RequestContext.Should().ContainKey("user_name");
-        wideEvent.RequestContext.Should().NotContainKey("sensitive_data");
-        wideEvent.RequestContext.Should().NotContainKey("SensitiveData");
+        wideEvent.Context.Should().ContainKey("user_id");
+        wideEvent.Context.Should().ContainKey("user_name");
+        wideEvent.Context.Should().NotContainKey("sensitive_data");
+        wideEvent.Context.Should().NotContainKey("SensitiveData");
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithRequestContext_ShouldExtractFromIWideEventContext()
+    public void WideEventBuilder_WithRequestContext_ShouldExtractFromIWideEventContext()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("ProcessData", "Mutation");
+        var builder = WideEvent.StartFeature("ProcessData", "Mutation");
         var request = new TestContextRequest("CUSTOM-123");
 
         // Act
@@ -101,37 +103,37 @@ public class FeatureWideEventBuilderTests
         var wideEvent = builder.Success();
 
         // Assert
-        wideEvent.RequestContext.Should().ContainKey("custom_context_key");
-        wideEvent.RequestContext["custom_context_key"].Should().Be("CUSTOM-123");
+        wideEvent.Context.Should().ContainKey("custom_context_key");
+        wideEvent.Context["custom_context_key"].Should().Be("CUSTOM-123");
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithFeatureContext_ShouldMergeContext()
+    public void WideEventBuilder_WithFeatureContext_ShouldMergeContext()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("UpdateOrder", "Mutation");
+        var builder = WideEvent.StartFeature("UpdateOrder", "Mutation");
         var featureContext = new FeatureContext<object> { Request = new object() };
 
-        featureContext.WideEventContext["order_id"] = Guid.NewGuid();
-        featureContext.WideEventContext["status"] = "processing";
-        featureContext.Entities["order"] = new TestOrder { Id = Guid.NewGuid() };
+        featureContext.AddContext("order_id", Guid.NewGuid());
+        featureContext.AddContext("status", "processing");
+        featureContext.SetEntity("order", new TestOrder { Id = Guid.NewGuid() });
 
         // Act
         builder.WithFeatureContext(featureContext);
         var wideEvent = builder.Success();
 
         // Assert
-        wideEvent.RequestContext.Should().ContainKey("order_id");
-        wideEvent.RequestContext.Should().ContainKey("status");
-        wideEvent.LoadedEntities.Should().ContainKey("order");
-        wideEvent.LoadedEntities["order"].Should().Be("TestOrder");
+        wideEvent.Context.Should().ContainKey("order_id");
+        wideEvent.Context.Should().ContainKey("status");
+        wideEvent.Feature!.LoadedEntities.Should().ContainKey("order");
+        wideEvent.Feature.LoadedEntities["order"].Should().Be("TestOrder");
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithPipelineStages_ShouldRecordStageTypes()
+    public void WideEventBuilder_WithPipelineStages_ShouldRecordStageTypes()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("CreateProduct", "Mutation");
+        var builder = WideEvent.StartFeature("CreateProduct", "Mutation");
 
         // Act
         builder.WithPipelineStages(
@@ -144,43 +146,43 @@ public class FeatureWideEventBuilderTests
         var wideEvent = builder.Success();
 
         // Assert
-        wideEvent.ValidatorType.Should().Be("TestValidator");
-        wideEvent.RequirementsType.Should().Be("TestRequirements");
-        wideEvent.MutatorType.Should().Be("TestMutator");
-        wideEvent.SideEffectsType.Should().Be("TestSideEffects");
-        wideEvent.HasCustomValidator.Should().BeTrue();
-        wideEvent.HasCustomRequirements.Should().BeTrue();
-        wideEvent.HasCustomSideEffects.Should().BeTrue();
+        wideEvent.Feature!.ValidatorType.Should().Be("TestValidator");
+        wideEvent.Feature.RequirementsType.Should().Be("TestRequirements");
+        wideEvent.Feature.MutatorType.Should().Be("TestMutator");
+        wideEvent.Feature.SideEffectsType.Should().Be("TestSideEffects");
+        wideEvent.Feature.HasCustomValidator.Should().BeTrue();
+        wideEvent.Feature.HasCustomRequirements.Should().BeTrue();
+        wideEvent.Feature.HasCustomSideEffects.Should().BeTrue();
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithPipelineStages_ShouldDetectNoOpStages()
+    public void WideEventBuilder_WithPipelineStages_ShouldDetectNoOpStages()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("SimpleQuery", "Query");
+        var builder = WideEvent.StartFeature("SimpleQuery", "Query");
 
         // Act
         builder.WithPipelineStages(
-            validatorType: typeof(NoOpValidatorTest),
-            requirementsType: typeof(NoOpRequirementsTest),
+            validatorType: typeof(NoOpValidator<string>),
+            requirementsType: typeof(NoOpRequirements<string>),
             mutatorOrQueryType: typeof(TestQuery),
-            sideEffectsType: typeof(NoOpSideEffectsTest),
+            sideEffectsType: typeof(NoOpSideEffects<string>),
             isMutation: false);
 
         var wideEvent = builder.Success();
 
         // Assert
-        wideEvent.QueryType.Should().Be("TestQuery");
-        wideEvent.HasCustomValidator.Should().BeFalse();
-        wideEvent.HasCustomRequirements.Should().BeFalse();
-        wideEvent.HasCustomSideEffects.Should().BeFalse();
+        wideEvent.Feature!.QueryType.Should().Be("TestQuery");
+        wideEvent.Feature.HasCustomValidator.Should().BeFalse();
+        wideEvent.Feature.HasCustomRequirements.Should().BeFalse();
+        wideEvent.Feature.HasCustomSideEffects.Should().BeFalse();
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_ShouldRecordTimingBreakdown()
+    public void WideEventBuilder_ShouldRecordTimingBreakdown()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("TimedFeature", "Mutation");
+        var builder = WideEvent.StartFeature("TimedFeature", "Mutation");
 
         // Act - Simulate pipeline stages
         builder.StartStage();
@@ -202,18 +204,18 @@ public class FeatureWideEventBuilderTests
         var wideEvent = builder.Success();
 
         // Assert
-        wideEvent.ValidationMs.Should().BeGreaterThan(0);
-        wideEvent.RequirementsMs.Should().BeGreaterThan(0);
-        wideEvent.ExecutionMs.Should().BeGreaterThan(0);
-        wideEvent.SideEffectsMs.Should().BeGreaterThan(0);
+        wideEvent.Feature!.ValidationMs.Should().BeGreaterThan(0);
+        wideEvent.Feature.RequirementsMs.Should().BeGreaterThan(0);
+        wideEvent.Feature.ExecutionMs.Should().BeGreaterThan(0);
+        wideEvent.Feature.SideEffectsMs.Should().BeGreaterThan(0);
         wideEvent.TotalMs.Should().BeGreaterOrEqualTo(20);
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_ValidationFailure_ShouldCaptureErrors()
+    public void WideEventBuilder_ValidationFailure_ShouldCaptureErrors()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("FailingValidation", "Mutation");
+        var builder = WideEvent.StartFeature("FailingValidation", "Mutation");
         var errors = new List<Error>
         {
             Error.Validation("Email.Invalid", "Email format is invalid"),
@@ -226,20 +228,21 @@ public class FeatureWideEventBuilderTests
         // Assert
         wideEvent.Outcome.Should().Be("validation_failure");
         wideEvent.IsSuccess.Should().BeFalse();
-        wideEvent.FailedAtStage.Should().Be("validation");
-        wideEvent.ErrorCode.Should().Be("Email.Invalid");
-        wideEvent.ErrorType.Should().Be("Validation");
-        wideEvent.ErrorMessage.Should().Be("Email format is invalid");
-        wideEvent.ErrorCount.Should().Be(2);
-        wideEvent.ErrorDescription.Should().Contain("Email.Invalid");
-        wideEvent.ErrorDescription.Should().Contain("Name.Required");
+        wideEvent.Error.Should().NotBeNull();
+        wideEvent.Error!.FailedAtStage.Should().Be("validation");
+        wideEvent.Error.Code.Should().Be("Email.Invalid");
+        wideEvent.Error.Type.Should().Be("Validation");
+        wideEvent.Error.Message.Should().Be("Email format is invalid");
+        wideEvent.Error.Count.Should().Be(2);
+        wideEvent.Error.AllDescriptions.Should().Contain("Email.Invalid");
+        wideEvent.Error.AllDescriptions.Should().Contain("Name.Required");
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_RequirementsFailure_ShouldCaptureErrors()
+    public void WideEventBuilder_RequirementsFailure_ShouldCaptureErrors()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("FailingRequirements", "Mutation");
+        var builder = WideEvent.StartFeature("FailingRequirements", "Mutation");
         var errors = new List<Error>
         {
             Error.NotFound("Order.NotFound", "Order not found")
@@ -250,16 +253,17 @@ public class FeatureWideEventBuilderTests
 
         // Assert
         wideEvent.Outcome.Should().Be("requirements_failure");
-        wideEvent.FailedAtStage.Should().Be("requirements");
-        wideEvent.ErrorCode.Should().Be("Order.NotFound");
-        wideEvent.ErrorType.Should().Be("NotFound");
+        wideEvent.Error.Should().NotBeNull();
+        wideEvent.Error!.FailedAtStage.Should().Be("requirements");
+        wideEvent.Error.Code.Should().Be("Order.NotFound");
+        wideEvent.Error.Type.Should().Be("NotFound");
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_ExecutionFailure_ShouldCaptureErrors()
+    public void WideEventBuilder_ExecutionFailure_ShouldCaptureErrors()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("FailingExecution", "Mutation");
+        var builder = WideEvent.StartFeature("FailingExecution", "Mutation");
         var errors = new List<Error>
         {
             Error.Failure("Payment.Declined", "Payment was declined")
@@ -270,15 +274,16 @@ public class FeatureWideEventBuilderTests
 
         // Assert
         wideEvent.Outcome.Should().Be("execution_failure");
-        wideEvent.FailedAtStage.Should().Be("execution");
-        wideEvent.ErrorCode.Should().Be("Payment.Declined");
+        wideEvent.Error.Should().NotBeNull();
+        wideEvent.Error!.FailedAtStage.Should().Be("execution");
+        wideEvent.Error.Code.Should().Be("Payment.Declined");
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_SideEffectsFailure_ShouldCaptureErrors()
+    public void WideEventBuilder_SideEffectsFailure_ShouldCaptureErrors()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("FailingSideEffects", "Mutation");
+        var builder = WideEvent.StartFeature("FailingSideEffects", "Mutation");
         var errors = new List<Error>
         {
             Error.Failure("Email.SendFailed", "Failed to send confirmation email")
@@ -289,14 +294,15 @@ public class FeatureWideEventBuilderTests
 
         // Assert
         wideEvent.Outcome.Should().Be("side_effects_failure");
-        wideEvent.FailedAtStage.Should().Be("side_effects");
+        wideEvent.Error.Should().NotBeNull();
+        wideEvent.Error!.FailedAtStage.Should().Be("side_effects");
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_Exception_ShouldCaptureExceptionDetails()
+    public void WideEventBuilder_Exception_ShouldCaptureExceptionDetails()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("ExceptionFeature", "Mutation");
+        var builder = WideEvent.StartFeature("ExceptionFeature", "Mutation");
 
         // Throw and catch to populate stack trace
         Exception exception;
@@ -310,26 +316,27 @@ public class FeatureWideEventBuilderTests
         }
 
         // Act
-        var wideEvent = builder.Exception(exception);
+        var wideEvent = builder.Exception(exception, includeStackTrace: true);
 
         // Assert
         wideEvent.Outcome.Should().Be("exception");
-        wideEvent.FailedAtStage.Should().Be("unknown");
-        wideEvent.ExceptionType.Should().Be("System.InvalidOperationException");
-        wideEvent.ExceptionMessage.Should().Be("Something went very wrong");
-        wideEvent.ExceptionStackTrace.Should().NotBeNullOrEmpty();
+        wideEvent.Error.Should().NotBeNull();
+        wideEvent.Error!.FailedAtStage.Should().Be("unknown");
+        wideEvent.Error.ExceptionType.Should().Be("System.InvalidOperationException");
+        wideEvent.Error.ExceptionMessage.Should().Be("Something went very wrong");
+        wideEvent.Error.ExceptionStackTrace.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_ShouldCaptureServiceContext()
+    public void WideEventBuilder_ShouldCaptureServiceContext()
     {
         // Note: Environment variables are cached at first use for performance.
         // This test verifies Host is always captured (via MachineName) and that
         // environment properties are populated from the cache (which may be null
-        // if not set before first FeatureWideEventBuilder was created).
+        // if not set before first WideEventBuilder was created).
 
         // Act
-        var builder = FeatureWideEvent.Start("EnvironmentTest", "Mutation");
+        var builder = WideEvent.StartFeature("EnvironmentTest", "Mutation");
         var wideEvent = builder.Success();
 
         // Assert - Host is always available via Environment.MachineName
@@ -338,14 +345,14 @@ public class FeatureWideEventBuilderTests
         // Environment properties come from cache (may be null if not set at startup)
         // These assertions verify the properties exist, not specific values
         // since tests run in arbitrary order and cache may already be initialized
-        wideEvent.Should().BeAssignableTo<FeatureWideEvent>();
+        wideEvent.Should().BeAssignableTo<WideEvent>();
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithResultContext_ShouldMergeContext()
+    public void WideEventBuilder_WithResultContext_ShouldMergeContext()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("ErrorOrContextTest", "Mutation");
+        var builder = WideEvent.StartFeature("ErrorOrContextTest", "Mutation");
         var context = new Dictionary<string, object>
         {
             ["operation"] = "create",
@@ -358,13 +365,13 @@ public class FeatureWideEventBuilderTests
         var wideEvent = builder.Success();
 
         // Assert
-        wideEvent.RequestContext.Should().ContainKey("operation");
-        wideEvent.RequestContext.Should().ContainKey("entity_type");
-        wideEvent.RequestContext.Should().ContainKey("timestamp");
+        wideEvent.Context.Should().ContainKey("operation");
+        wideEvent.Context.Should().ContainKey("entity_type");
+        wideEvent.Context.Should().ContainKey("timestamp");
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_ShouldCaptureDistributedTraceContext()
+    public void WideEventBuilder_ShouldCaptureDistributedTraceContext()
     {
         // Arrange
         using var activity = new System.Diagnostics.Activity("TestActivity");
@@ -372,7 +379,7 @@ public class FeatureWideEventBuilderTests
         activity.Start();
 
         // Act
-        var builder = FeatureWideEvent.Start("TraceTest", "Mutation");
+        var builder = WideEvent.StartFeature("TraceTest", "Mutation");
         var wideEvent = builder.Success();
 
         // Assert
@@ -383,13 +390,13 @@ public class FeatureWideEventBuilderTests
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithoutActivity_ShouldHaveNullTraceContext()
+    public void WideEventBuilder_WithoutActivity_ShouldHaveNullTraceContext()
     {
         // Arrange - Ensure no activity is current
         System.Diagnostics.Activity.Current = null;
 
         // Act
-        var builder = FeatureWideEvent.Start("NoTraceTest", "Mutation");
+        var builder = WideEvent.StartFeature("NoTraceTest", "Mutation");
         var wideEvent = builder.Success();
 
         // Assert
@@ -398,10 +405,10 @@ public class FeatureWideEventBuilderTests
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithContext_SameKey_ShouldOverwrite()
+    public void WideEventBuilder_WithContext_SameKey_ShouldOverwrite()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("OverwriteTest", "Mutation");
+        var builder = WideEvent.StartFeature("OverwriteTest", "Mutation");
 
         // Act
         builder
@@ -411,14 +418,14 @@ public class FeatureWideEventBuilderTests
         var wideEvent = builder.Success();
 
         // Assert
-        wideEvent.RequestContext["key"].Should().Be("overwritten");
+        wideEvent.Context["key"].Should().Be("overwritten");
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithRequestContext_NullRequest_ShouldNotThrow()
+    public void WideEventBuilder_WithRequestContext_NullRequest_ShouldNotThrow()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("NullRequestTest", "Mutation");
+        var builder = WideEvent.StartFeature("NullRequestTest", "Mutation");
 
         // Act
         var act = () => builder.WithRequestContext<TestRequest>(null!);
@@ -428,10 +435,10 @@ public class FeatureWideEventBuilderTests
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithRequestContext_BothAttributeAndInterface_ShouldExtractBoth()
+    public void WideEventBuilder_WithRequestContext_BothAttributeAndInterface_ShouldExtractBoth()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("CombinedContextTest", "Mutation");
+        var builder = WideEvent.StartFeature("CombinedContextTest", "Mutation");
         var request = new CombinedContextRequest
         {
             AttributeProperty = "from-attribute"
@@ -442,17 +449,17 @@ public class FeatureWideEventBuilderTests
         var wideEvent = builder.Success();
 
         // Assert - Both extraction methods should work
-        wideEvent.RequestContext.Should().ContainKey("attribute_property");
-        wideEvent.RequestContext["attribute_property"].Should().Be("from-attribute");
-        wideEvent.RequestContext.Should().ContainKey("interface_key");
-        wideEvent.RequestContext["interface_key"].Should().Be("from-interface");
+        wideEvent.Context.Should().ContainKey("attribute_property");
+        wideEvent.Context["attribute_property"].Should().Be("from-attribute");
+        wideEvent.Context.Should().ContainKey("interface_key");
+        wideEvent.Context["interface_key"].Should().Be("from-interface");
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_Failure_WithEmptyErrorList_ShouldHandleGracefully()
+    public void WideEventBuilder_Failure_WithEmptyErrorList_ShouldHandleGracefully()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("EmptyErrorTest", "Mutation");
+        var builder = WideEvent.StartFeature("EmptyErrorTest", "Mutation");
         var errors = new List<Error>();
 
         // Act
@@ -460,15 +467,16 @@ public class FeatureWideEventBuilderTests
 
         // Assert
         wideEvent.Outcome.Should().Be("validation_failure");
-        wideEvent.ErrorCode.Should().BeNull();
-        wideEvent.ErrorCount.Should().BeNull();
+        wideEvent.Error.Should().NotBeNull();
+        wideEvent.Error!.Code.Should().BeNull();
+        wideEvent.Error.Count.Should().Be(0);
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_Exception_WithInnerException_ShouldCaptureOuterException()
+    public void WideEventBuilder_Exception_WithInnerException_ShouldCaptureOuterException()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("InnerExceptionTest", "Mutation");
+        var builder = WideEvent.StartFeature("InnerExceptionTest", "Mutation");
 
         Exception outerException;
         try
@@ -488,19 +496,20 @@ public class FeatureWideEventBuilderTests
         }
 
         // Act
-        var wideEvent = builder.Exception(outerException);
+        var wideEvent = builder.Exception(outerException, includeStackTrace: true);
 
         // Assert - Should capture outer exception details
-        wideEvent.ExceptionType.Should().Contain("ApplicationException");
-        wideEvent.ExceptionMessage.Should().Be("Outer error");
-        wideEvent.ExceptionStackTrace.Should().NotBeNullOrEmpty();
+        wideEvent.Error.Should().NotBeNull();
+        wideEvent.Error!.ExceptionType.Should().Contain("ApplicationException");
+        wideEvent.Error.ExceptionMessage.Should().Be("Outer error");
+        wideEvent.Error.ExceptionStackTrace.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_ManyErrors_ShouldJoinAllDescriptions()
+    public void WideEventBuilder_ManyErrors_ShouldJoinAllDescriptions()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("ManyErrorsTest", "Mutation");
+        var builder = WideEvent.StartFeature("ManyErrorsTest", "Mutation");
         var errors = Enumerable.Range(1, 10)
             .Select(i => Error.Validation($"Error{i}", $"Description {i}"))
             .ToList();
@@ -509,26 +518,27 @@ public class FeatureWideEventBuilderTests
         var wideEvent = builder.ValidationFailure(errors);
 
         // Assert
-        wideEvent.ErrorCount.Should().Be(10);
-        wideEvent.ErrorCode.Should().Be("Error1"); // First error
-        wideEvent.ErrorDescription.Should().Contain("Error1");
-        wideEvent.ErrorDescription.Should().Contain("Error10");
+        wideEvent.Error.Should().NotBeNull();
+        wideEvent.Error!.Count.Should().Be(10);
+        wideEvent.Error.Code.Should().Be("Error1"); // First error
+        wideEvent.Error.AllDescriptions.Should().Contain("Error1");
+        wideEvent.Error.AllDescriptions.Should().Contain("Error10");
 
         // All errors should be joined
         for (int i = 1; i <= 10; i++)
         {
-            wideEvent.ErrorDescription.Should().Contain($"Error{i}");
+            wideEvent.Error.AllDescriptions.Should().Contain($"Error{i}");
         }
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_Timestamp_ShouldBeRecentUtc()
+    public void WideEventBuilder_Timestamp_ShouldBeRecentUtc()
     {
         // Arrange
         var beforeStart = DateTimeOffset.UtcNow;
 
         // Act
-        var builder = FeatureWideEvent.Start("TimestampTest", "Mutation");
+        var builder = WideEvent.StartFeature("TimestampTest", "Mutation");
         var wideEvent = builder.Success();
 
         var afterEnd = DateTimeOffset.UtcNow;
@@ -540,10 +550,10 @@ public class FeatureWideEventBuilderTests
     }
 
     [Fact]
-    public void FeatureWideEventBuilder_WithFeatureContext_NullContext_ShouldNotThrow()
+    public void WideEventBuilder_WithFeatureContext_NullContext_ShouldNotThrow()
     {
         // Arrange
-        var builder = FeatureWideEvent.Start("NullFeatureContextTest", "Mutation");
+        var builder = WideEvent.StartFeature("NullFeatureContextTest", "Mutation");
 
         // Act
         var act = () => builder.WithFeatureContext<object>(null);
@@ -673,7 +683,7 @@ public class TestWideEventEmitterTests
 
         // Act - Start waiting before event is emitted
         var waitTask = emitter.WaitForEventAsync(
-            e => e.FeatureName == "DelayedFeature",
+            e => e.Feature?.FeatureName == "DelayedFeature",
             TimeSpan.FromSeconds(5));
 
         // Emit the event after a delay
@@ -687,7 +697,7 @@ public class TestWideEventEmitterTests
 
         // Assert
         result.Should().NotBeNull();
-        result.FeatureName.Should().Be("DelayedFeature");
+        result.Feature!.FeatureName.Should().Be("DelayedFeature");
     }
 
     [Fact]
@@ -699,12 +709,12 @@ public class TestWideEventEmitterTests
 
         // Act
         var result = await emitter.WaitForEventAsync(
-            e => e.FeatureName == "ExistingFeature",
+            e => e.Feature?.FeatureName == "ExistingFeature",
             TimeSpan.FromSeconds(1));
 
         // Assert
         result.Should().NotBeNull();
-        result.FeatureName.Should().Be("ExistingFeature");
+        result.Feature!.FeatureName.Should().Be("ExistingFeature");
     }
 
     [Fact]
@@ -722,212 +732,18 @@ public class TestWideEventEmitterTests
         emitter.Events.Should().BeEmpty();
     }
 
-    private static FeatureWideEvent CreateTestEvent(string featureName, string outcome)
+    private static WideEvent CreateTestEvent(string featureName, string outcome)
     {
-        return new FeatureWideEvent
+        return new WideEvent
         {
-            FeatureName = featureName,
-            FeatureType = "Mutation",
-            Outcome = outcome
-        };
-    }
-}
-
-/// <summary>
-/// Tests for SerilogWideEventEmitter (production emitter using ILogger).
-/// </summary>
-public class SerilogWideEventEmitterTests
-{
-    [Fact]
-    public void Emit_WhenSuccess_ShouldLogAtInformationLevel()
-    {
-        // Arrange
-        var logger = new TestLogger();
-        var emitter = new SerilogWideEventEmitter(logger);
-        var wideEvent = new FeatureWideEvent
-        {
-            FeatureName = "CreateOrder",
-            FeatureType = "Mutation",
-            Outcome = "success"
-        };
-
-        // Act
-        emitter.Emit(wideEvent);
-
-        // Assert
-        logger.LogEntries.Should().HaveCount(1);
-        logger.LogEntries[0].LogLevel.Should().Be(Microsoft.Extensions.Logging.LogLevel.Information);
-    }
-
-    [Fact]
-    public void Emit_WhenValidationFailure_ShouldLogAtWarningLevel()
-    {
-        // Arrange
-        var logger = new TestLogger();
-        var emitter = new SerilogWideEventEmitter(logger);
-        var wideEvent = new FeatureWideEvent
-        {
-            FeatureName = "CreateOrder",
-            FeatureType = "Mutation",
-            Outcome = "validation_failure",
-            ErrorCode = "Order.Invalid"
-        };
-
-        // Act
-        emitter.Emit(wideEvent);
-
-        // Assert
-        logger.LogEntries.Should().HaveCount(1);
-        logger.LogEntries[0].LogLevel.Should().Be(Microsoft.Extensions.Logging.LogLevel.Warning);
-    }
-
-    [Fact]
-    public void Emit_WhenException_ShouldLogAtWarningLevel()
-    {
-        // Arrange
-        var logger = new TestLogger();
-        var emitter = new SerilogWideEventEmitter(logger);
-        var wideEvent = new FeatureWideEvent
-        {
-            FeatureName = "CreateOrder",
-            FeatureType = "Mutation",
-            Outcome = "exception",
-            ExceptionType = "System.InvalidOperationException",
-            ExceptionMessage = "Something went wrong"
-        };
-
-        // Act
-        emitter.Emit(wideEvent);
-
-        // Assert
-        logger.LogEntries.Should().HaveCount(1);
-        logger.LogEntries[0].LogLevel.Should().Be(Microsoft.Extensions.Logging.LogLevel.Warning);
-    }
-
-    [Fact]
-    public void Emit_ShouldIncludeFeatureNameInLogMessage()
-    {
-        // Arrange
-        var logger = new TestLogger();
-        var emitter = new SerilogWideEventEmitter(logger);
-        var wideEvent = new FeatureWideEvent
-        {
-            FeatureName = "ProcessPayment",
-            FeatureType = "Mutation",
-            Outcome = "success",
-            TotalMs = 123.45
-        };
-
-        // Act
-        emitter.Emit(wideEvent);
-
-        // Assert
-        logger.LogEntries.Should().HaveCount(1);
-
-        // The formatted message should include the feature name
-        logger.LogEntries[0].Message.Should().Contain("ProcessPayment");
-    }
-
-    [Fact]
-    public void Emit_ShouldIncludeTimingInLogMessage()
-    {
-        // Arrange
-        var logger = new TestLogger();
-        var emitter = new SerilogWideEventEmitter(logger);
-        var wideEvent = new FeatureWideEvent
-        {
-            FeatureName = "CreateOrder",
-            FeatureType = "Mutation",
-            Outcome = "success",
-            TotalMs = 150.5,
-            ValidationMs = 10.0,
-            RequirementsMs = 20.0,
-            ExecutionMs = 100.0,
-            SideEffectsMs = 20.5
-        };
-
-        // Act
-        emitter.Emit(wideEvent);
-
-        // Assert
-        logger.LogEntries.Should().HaveCount(1);
-        var message = logger.LogEntries[0].Message;
-        message.Should().NotBeNullOrEmpty();
-
-        // Timing values should be formatted in the message
-        message.Should().Contain("150.50");  // TotalMs
-        message.Should().Contain("10.00");   // ValidationMs
-        message.Should().Contain("20.00");   // RequirementsMs
-        message.Should().Contain("100.00");  // ExecutionMs
-        message.Should().Contain("20.50");   // SideEffectsMs
-    }
-
-    [Fact]
-    public void Emit_WithNullTimings_ShouldUseZeroAsDefault()
-    {
-        // Arrange
-        var logger = new TestLogger();
-        var emitter = new SerilogWideEventEmitter(logger);
-        var wideEvent = new FeatureWideEvent
-        {
-            FeatureName = "CreateOrder",
-            FeatureType = "Mutation",
-            Outcome = "success",
-            TotalMs = 50.0,
-            ValidationMs = null,
-            RequirementsMs = null,
-            ExecutionMs = null,
-            SideEffectsMs = null
-        };
-
-        // Act
-        emitter.Emit(wideEvent);
-
-        // Assert
-        logger.LogEntries.Should().HaveCount(1);
-        var message = logger.LogEntries[0].Message;
-        message.Should().NotBeNullOrEmpty();
-
-        // Null timings should appear as 0.00 in message
-        message.Should().Contain("50.00"); // TotalMs is set
-        message.Should().Contain("[Validation: 0.00ms]");
-        message.Should().Contain("[Requirements: 0.00ms]");
-        message.Should().Contain("[Execution: 0.00ms]");
-        message.Should().Contain("[SideEffects: 0.00ms]");
-    }
-
-    /// <summary>
-    /// Simple test logger that captures log entries for verification.
-    /// </summary>
-    private sealed class TestLogger : Microsoft.Extensions.Logging.ILogger
-    {
-        public List<LogEntry> LogEntries { get; } = new();
-
-        public IDisposable? BeginScope<TState>(TState state)
-            where TState : notnull
-            => null;
-
-        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
-
-        public void Log<TState>(
-            Microsoft.Extensions.Logging.LogLevel logLevel,
-            Microsoft.Extensions.Logging.EventId eventId,
-            TState state,
-            Exception? exception,
-            Func<TState, Exception?, string> formatter)
-        {
-            LogEntries.Add(new LogEntry
+            EventType = "feature",
+            Outcome = outcome,
+            Feature = new WideEventFeatureSegment
             {
-                LogLevel = logLevel,
-                Message = formatter(state, exception)
-            });
-        }
-
-        public record LogEntry
-        {
-            public Microsoft.Extensions.Logging.LogLevel LogLevel { get; init; }
-            public string? Message { get; init; }
-        }
+                FeatureName = featureName,
+                FeatureType = "Mutation",
+            },
+        };
     }
 }
 
@@ -941,11 +757,15 @@ public class NullWideEventEmitterTests
     {
         // Arrange
         var emitter = NullWideEventEmitter.Instance;
-        var wideEvent = new FeatureWideEvent
+        var wideEvent = new WideEvent
         {
-            FeatureName = "TestFeature",
-            FeatureType = "Mutation",
-            Outcome = "success"
+            EventType = "feature",
+            Outcome = "success",
+            Feature = new WideEventFeatureSegment
+            {
+                FeatureName = "TestFeature",
+                FeatureType = "Mutation",
+            },
         };
 
         // Act
@@ -953,6 +773,29 @@ public class NullWideEventEmitterTests
 
         // Assert
         act.Should().NotThrow();
+    }
+
+    [Fact]
+    public async Task EmitAsync_ShouldNotThrow()
+    {
+        // Arrange
+        var emitter = NullWideEventEmitter.Instance;
+        var wideEvent = new WideEvent
+        {
+            EventType = "feature",
+            Outcome = "success",
+            Feature = new WideEventFeatureSegment
+            {
+                FeatureName = "TestFeature",
+                FeatureType = "Mutation",
+            },
+        };
+
+        // Act
+        var act = async () => await emitter.EmitAsync(wideEvent);
+
+        // Assert
+        await act.Should().NotThrowAsync();
     }
 
     [Fact]
@@ -964,5 +807,15 @@ public class NullWideEventEmitterTests
 
         // Assert
         instance1.Should().BeSameAs(instance2);
+    }
+
+    [Fact]
+    public void Instance_ShouldImplementIWideEventEmitter()
+    {
+        // Act
+        var emitter = NullWideEventEmitter.Instance;
+
+        // Assert
+        emitter.Should().BeAssignableTo<IWideEventEmitter>();
     }
 }

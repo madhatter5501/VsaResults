@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
-using VsaResults;
 using VsaResults.Messaging;
+using VsaResults.WideEvents;
 
 namespace Tests.Integration;
 
@@ -9,48 +9,61 @@ namespace Tests.Integration;
 /// </summary>
 public sealed class TestWideEventEmitter : IWideEventEmitter
 {
-    private readonly ConcurrentBag<FeatureWideEvent> _events = new();
-    private readonly List<Action<FeatureWideEvent>> _callbacks = new();
-    private volatile FeatureWideEvent? _lastEvent;
+    private readonly ConcurrentBag<WideEvent> _events = new();
+    private readonly List<Action<WideEvent>> _callbacks = new();
+    private volatile WideEvent? _lastEvent;
 
     /// <summary>
     /// Gets all emitted events.
     /// </summary>
-    public IReadOnlyCollection<FeatureWideEvent> Events => _events.ToArray();
+    public IReadOnlyCollection<WideEvent> Events => _events.ToArray();
 
     /// <summary>
     /// Gets the most recent event.
     /// </summary>
-    public FeatureWideEvent? LastEvent => _lastEvent;
+    public WideEvent? LastEvent => _lastEvent;
 
     /// <summary>
     /// Gets events by feature name.
     /// </summary>
-    public IEnumerable<FeatureWideEvent> GetEventsByFeature(string featureName)
-        => _events.Where(e => e.FeatureName == featureName);
+    public IEnumerable<WideEvent> GetEventsByFeature(string featureName)
+        => _events.Where(e => e.Feature?.FeatureName == featureName);
 
     /// <summary>
     /// Gets events by outcome.
     /// </summary>
-    public IEnumerable<FeatureWideEvent> GetSuccessfulEvents()
+    public IEnumerable<WideEvent> GetSuccessfulEvents()
         => _events.Where(e => e.Outcome == "success");
 
     /// <summary>
     /// Gets events with errors.
     /// </summary>
-    public IEnumerable<FeatureWideEvent> GetFailedEvents()
+    public IEnumerable<WideEvent> GetFailedEvents()
         => _events.Where(e => e.Outcome != "success");
 
     /// <summary>
     /// Registers a callback to be invoked when an event is emitted.
     /// </summary>
-    public void OnEmit(Action<FeatureWideEvent> callback)
+    public void OnEmit(Action<WideEvent> callback)
     {
         _callbacks.Add(callback);
     }
 
     /// <inheritdoc />
-    public void Emit(FeatureWideEvent wideEvent)
+    public ValueTask EmitAsync(WideEvent wideEvent, CancellationToken ct = default)
+    {
+        _events.Add(wideEvent);
+        _lastEvent = wideEvent;
+        foreach (var callback in _callbacks)
+        {
+            callback(wideEvent);
+        }
+
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public void Emit(WideEvent wideEvent)
     {
         _events.Add(wideEvent);
         _lastEvent = wideEvent;
@@ -73,12 +86,12 @@ public sealed class TestWideEventEmitter : IWideEventEmitter
     /// <summary>
     /// Waits for an event matching the predicate.
     /// </summary>
-    public async Task<FeatureWideEvent> WaitForEventAsync(
-        Func<FeatureWideEvent, bool> predicate,
+    public async Task<WideEvent> WaitForEventAsync(
+        Func<WideEvent, bool> predicate,
         TimeSpan? timeout = null)
     {
         var cts = new CancellationTokenSource(timeout ?? TimeSpan.FromSeconds(10));
-        var tcs = new TaskCompletionSource<FeatureWideEvent>();
+        var tcs = new TaskCompletionSource<WideEvent>();
 
         // Check existing events first
         var existing = _events.FirstOrDefault(predicate);
@@ -88,7 +101,7 @@ public sealed class TestWideEventEmitter : IWideEventEmitter
         }
 
         // Register callback for future events
-        void Callback(FeatureWideEvent e)
+        void Callback(WideEvent e)
         {
             if (predicate(e))
             {

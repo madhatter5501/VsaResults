@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using VsaResults.Binding;
+using VsaResults.WideEvents;
 
 namespace VsaResults;
 
@@ -152,7 +153,7 @@ public static class FeatureHandler
             IWideEventEmitter emitter,
             CancellationToken ct) =>
         {
-            var wideEventBuilder = FeatureWideEvent.Start(typeof(TRequest).Name, "Query")
+            var wideEventBuilder = WideEvent.StartFeature(typeof(TRequest).Name, "Query")
                 .WithTypes<TRequest, TResult>();
 
             // Add binding context for debugging
@@ -170,7 +171,7 @@ public static class FeatureHandler
             if (bindingResult.IsError)
             {
                 var wideEvent = wideEventBuilder.BindingFailure(bindingResult.Errors);
-                emitter.Emit(wideEvent);
+                await emitter.EmitAsync(wideEvent, ct).ConfigureAwait(false);
                 return ApiResults.ToProblem(bindingResult.Errors);
             }
 
@@ -197,7 +198,7 @@ public static class FeatureHandler
             IWideEventEmitter emitter,
             CancellationToken ct) =>
         {
-            var wideEventBuilder = FeatureWideEvent.Start(typeof(TRequest).Name, "Mutation")
+            var wideEventBuilder = WideEvent.StartFeature(typeof(TRequest).Name, "Mutation")
                 .WithTypes<TRequest, TResult>();
 
             // Add binding context for debugging
@@ -215,7 +216,7 @@ public static class FeatureHandler
             if (bindingResult.IsError)
             {
                 var wideEvent = wideEventBuilder.BindingFailure(bindingResult.Errors);
-                emitter.Emit(wideEvent);
+                await emitter.EmitAsync(wideEvent, ct).ConfigureAwait(false);
                 return ApiResults.ToProblem(bindingResult.Errors);
             }
 
@@ -243,7 +244,7 @@ public static class FeatureHandler
             IWideEventEmitter emitter,
             CancellationToken ct) =>
         {
-            var wideEventBuilder = FeatureWideEvent.Start(typeof(TRequest).Name, "Mutation")
+            var wideEventBuilder = WideEvent.StartFeature(typeof(TRequest).Name, "Mutation")
                 .WithTypes<TRequest, TResult>();
 
             // Add binding context for debugging
@@ -261,7 +262,7 @@ public static class FeatureHandler
             if (bindingResult.IsError)
             {
                 var wideEvent = wideEventBuilder.BindingFailure(bindingResult.Errors);
-                emitter.Emit(wideEvent);
+                await emitter.EmitAsync(wideEvent, ct).ConfigureAwait(false);
                 return ApiResults.ToProblem(bindingResult.Errors);
             }
 
@@ -287,7 +288,7 @@ public static class FeatureHandler
             IWideEventEmitter emitter,
             CancellationToken ct) =>
         {
-            var wideEventBuilder = FeatureWideEvent.Start(typeof(TRequest).Name, "Mutation")
+            var wideEventBuilder = WideEvent.StartFeature(typeof(TRequest).Name, "Mutation")
                 .WithTypes<TRequest, Unit>();
 
             // Add binding context for debugging
@@ -305,7 +306,7 @@ public static class FeatureHandler
             if (bindingResult.IsError)
             {
                 var wideEvent = wideEventBuilder.BindingFailure(bindingResult.Errors);
-                emitter.Emit(wideEvent);
+                await emitter.EmitAsync(wideEvent, ct).ConfigureAwait(false);
                 return ApiResults.ToProblem(bindingResult.Errors);
             }
 

@@ -39,47 +39,22 @@ public static class ServiceCollectionExtensions
         services.AddVsaFeatures(typeof(T).Assembly);
 
     /// <summary>
-    /// Registers a specific wide event emitter.
-    /// </summary>
-    /// <typeparam name="TEmitter">The emitter implementation type.</typeparam>
-    /// <param name="services">The service collection.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddWideEventEmitter<TEmitter>(this IServiceCollection services)
-        where TEmitter : class, IWideEventEmitter
-    {
-        services.AddSingleton<IWideEventEmitter, TEmitter>();
-        return services;
-    }
-
-    /// <summary>
-    /// Registers a wide event emitter instance.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="emitter">The emitter instance.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddWideEventEmitter(this IServiceCollection services, IWideEventEmitter emitter)
-    {
-        services.AddSingleton(emitter);
-        return services;
-    }
-
-    /// <summary>
-    /// Registers the unified wide events system with default options.
+    /// Registers the wide events system with default options.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddUnifiedWideEvents(this IServiceCollection services)
+    public static IServiceCollection AddWideEvents(this IServiceCollection services)
     {
-        return services.AddUnifiedWideEvents(_ => { });
+        return services.AddWideEvents(_ => { });
     }
 
     /// <summary>
-    /// Registers the unified wide events system with custom options.
+    /// Registers the wide events system with custom options.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configure">Action to configure options.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddUnifiedWideEvents(
+    public static IServiceCollection AddWideEvents(
         this IServiceCollection services,
         Action<WideEventOptions> configure)
     {
@@ -106,17 +81,13 @@ public static class ServiceCollectionExtensions
         // Register in-memory sink as default (users should override with their own sink)
         services.TryAddSingleton<IWideEventSink, InMemoryWideEventSink>();
 
-        // Register the unified emitter
-        services.TryAddSingleton<IUnifiedWideEventEmitter>(sp =>
+        // Register the emitter
+        services.TryAddSingleton<IWideEventEmitter>(sp =>
         {
             var sink = sp.GetRequiredService<IWideEventSink>();
             var interceptors = sp.GetRequiredService<IEnumerable<IWideEventInterceptor>>();
             return new UnifiedWideEventEmitter(sink, interceptors);
         });
-
-        // Register legacy adapter for backward compatibility
-        services.TryAddSingleton<IWideEventEmitter>(sp =>
-            new UnifiedToLegacyEmitterAdapter(sp.GetRequiredService<IUnifiedWideEventEmitter>()));
 
         return services;
     }

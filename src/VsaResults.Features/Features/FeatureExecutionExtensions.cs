@@ -21,116 +21,25 @@ public static class FeatureExecutionExtensions
     /// <param name="emitter">The wide event emitter for observability.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The result or errors from execution.</returns>
-    public static async Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
+    public static Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
         this IMutationFeature<TRequest, TResult> feature,
         TRequest request,
-        IWideEventEmitter emitter,
+        IWideEventEmitter? emitter = null,
         CancellationToken ct = default)
     {
         var featureName = feature.GetType().DeclaringType?.Name ?? feature.GetType().Name;
-        using var activity = StartFeatureActivity<TRequest, TResult>(featureName, FeatureTypes.Mutation);
-        var wideEvent = FeatureWideEvent.Start(featureName, FeatureTypes.Mutation)
-            .WithTypes<TRequest, TResult>()
-            .WithRequestContext(request)
-            .WithPipelineStages(
-                feature.Validator?.GetType(),
-                feature.Requirements?.GetType(),
-                feature.Mutator?.GetType(),
-                feature.SideEffects?.GetType(),
-                isMutation: true);
+        var mutator = feature.Mutator ?? throw new InvalidOperationException(ExceptionMessages.MutatorRequired);
 
-        FeatureContext<TRequest>? context = null;
-
-        try
-        {
-            // Validation stage (with child span)
-            var validator = feature.Validator ?? NoOpValidator<TRequest>.Instance;
-            wideEvent.StartStage(StageNames.Validation, validator.GetType(), MethodNames.ValidateAsync);
-            var (validated, validationMs) = await ExecuteStageAsync(
-                featureName,
-                StageNames.Validation,
-                () => validator.ValidateAsync(request, ct)).ConfigureAwait(false);
-            wideEvent.RecordValidation();
-            RecordStageEvent(activity, StageNames.Validation, validationMs);
-
-            if (validated.IsError)
-            {
-                wideEvent.WithResultContext(validated.Context);
-                RecordOutcome(activity, OutcomeNames.ValidationFailure);
-                emitter.Emit(wideEvent.WithFeatureContext(context).ValidationFailure(validated.Errors));
-                return new VsaResult<TResult>(validated.Errors, validated._context);
-            }
-
-            // Requirements stage (with child span)
-            var requirements = feature.Requirements ?? NoOpRequirements<TRequest>.Instance;
-            wideEvent.StartStage(StageNames.Requirements, requirements.GetType(), MethodNames.EnforceAsync);
-            var (enforced, requirementsMs) = await ExecuteStageAsync(
-                featureName,
-                StageNames.Requirements,
-                () => requirements.EnforceAsync(validated.Value, ct)).ConfigureAwait(false);
-            wideEvent.RecordRequirements();
-            RecordStageEvent(activity, StageNames.Requirements, requirementsMs);
-
-            if (enforced.IsError)
-            {
-                wideEvent.WithResultContext(enforced.Context);
-                RecordOutcome(activity, OutcomeNames.RequirementsFailure);
-                emitter.Emit(wideEvent.WithFeatureContext(context).RequirementsFailure(enforced.Errors));
-                return new VsaResult<TResult>(enforced.Errors, enforced._context);
-            }
-
-            context = enforced.Value;
-
-            // Enrich with request metadata (IP, user agent, etc.)
-            EnrichWithRequestMetadata(context);
-
-            // Execution stage (with child span)
-            var mutator = feature.Mutator ?? throw new InvalidOperationException(ExceptionMessages.MutatorRequired);
-            wideEvent.StartStage(StageNames.Execution, mutator.GetType(), MethodNames.ExecuteAsync);
-            var (result, executionMs) = await ExecuteStageAsync(
-                featureName,
-                StageNames.Execution,
-                () => mutator.ExecuteAsync(context, ct)).ConfigureAwait(false);
-            wideEvent.RecordExecution();
-            RecordStageEvent(activity, StageNames.Execution, executionMs);
-
-            if (result.IsError)
-            {
-                wideEvent.WithResultContext(result.Context);
-                RecordOutcome(activity, OutcomeNames.ExecutionFailure);
-                emitter.Emit(wideEvent.WithFeatureContext(context).ExecutionFailure(result.Errors));
-                return result;
-            }
-
-            // Side effects stage (with child span)
-            var sideEffects = feature.SideEffects ?? NoOpSideEffects<TRequest>.Instance;
-            wideEvent.StartStage(StageNames.SideEffects, sideEffects.GetType(), MethodNames.ExecuteAsync);
-            var (effects, sideEffectsMs) = await ExecuteStageAsync(
-                featureName,
-                StageNames.SideEffects,
-                () => sideEffects.ExecuteAsync(context, ct)).ConfigureAwait(false);
-            wideEvent.RecordSideEffects();
-            RecordStageEvent(activity, StageNames.SideEffects, sideEffectsMs);
-
-            if (effects.IsError)
-            {
-                wideEvent.WithResultContext(effects.Context);
-                RecordOutcome(activity, OutcomeNames.SideEffectsFailure);
-                emitter.Emit(wideEvent.WithFeatureContext(context).SideEffectsFailure(effects.Errors));
-                return new VsaResult<TResult>(effects.Errors, effects._context);
-            }
-
-            wideEvent.WithResultContext(result.Context);
-            RecordOutcome(activity, OutcomeNames.Success);
-            emitter.Emit(wideEvent.WithFeatureContext(context).Success());
-            return result;
-        }
-        catch (Exception ex)
-        {
-            RecordException(activity, ex);
-            emitter.Emit(wideEvent.WithFeatureContext(context).Exception(ex));
-            throw;
-        }
+        return ExecutePipelineAsync<TRequest, TResult>(
+            featureName,
+            FeatureTypes.Mutation,
+            feature.Validator ?? NoOpValidator<TRequest>.Instance,
+            feature.Requirements ?? NoOpRequirements<TRequest>.Instance,
+            (context, token) => mutator.ExecuteAsync(context, token),
+            feature.SideEffects ?? NoOpSideEffects<TRequest>.Instance,
+            request,
+            emitter ?? NullWideEventEmitter.Instance,
+            ct);
     }
 
     /// <summary>
@@ -144,135 +53,54 @@ public static class FeatureExecutionExtensions
     /// <param name="emitter">The wide event emitter for observability.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The result or errors from execution.</returns>
-    public static async Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
+    public static Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
         this IQueryFeature<TRequest, TResult> feature,
+        TRequest request,
+        IWideEventEmitter? emitter = null,
+        CancellationToken ct = default)
+    {
+        var featureName = feature.GetType().DeclaringType?.Name ?? feature.GetType().Name;
+        var query = feature.Query ?? throw new InvalidOperationException(ExceptionMessages.QueryRequired);
+
+        return ExecutePipelineAsync<TRequest, TResult>(
+            featureName,
+            FeatureTypes.Query,
+            feature.Validator ?? NoOpValidator<TRequest>.Instance,
+            feature.Requirements ?? NoOpRequirements<TRequest>.Instance,
+            (context, token) => query.ExecuteAsync(context, token),
+            null,
+            request,
+            emitter ?? NullWideEventEmitter.Instance,
+            ct);
+    }
+
+    private static async Task<VsaResult<TResult>> ExecutePipelineAsync<TRequest, TResult>(
+        string featureName,
+        string featureType,
+        IFeatureValidator<TRequest> validator,
+        IFeatureRequirements<TRequest> requirements,
+        Func<FeatureContext<TRequest>, CancellationToken, Task<VsaResult<TResult>>> execute,
+        IFeatureSideEffects<TRequest>? sideEffects,
         TRequest request,
         IWideEventEmitter emitter,
-        CancellationToken ct = default)
+        CancellationToken ct)
     {
-        var featureName = feature.GetType().DeclaringType?.Name ?? feature.GetType().Name;
-        using var activity = StartFeatureActivity<TRequest, TResult>(featureName, FeatureTypes.Query);
-        var wideEvent = FeatureWideEvent.Start(featureName, FeatureTypes.Query)
+        using var activity = StartFeatureActivity<TRequest, TResult>(featureName, featureType);
+        var builder = WideEvent.StartFeature(featureName, featureType)
             .WithTypes<TRequest, TResult>()
             .WithRequestContext(request)
             .WithPipelineStages(
-                feature.Validator?.GetType(),
-                feature.Requirements?.GetType(),
-                feature.Query?.GetType(),
-                sideEffectsType: null,
-                isMutation: false);
+                validator.GetType(),
+                requirements.GetType(),
+                execute.Target?.GetType(),
+                sideEffects?.GetType(),
+                isMutation: featureType == FeatureTypes.Mutation);
 
         FeatureContext<TRequest>? context = null;
 
         try
         {
-            // Validation stage (with child span)
-            var validator = feature.Validator ?? NoOpValidator<TRequest>.Instance;
-            wideEvent.StartStage(StageNames.Validation, validator.GetType(), MethodNames.ValidateAsync);
-            var (validated, validationMs) = await ExecuteStageAsync(
-                featureName,
-                StageNames.Validation,
-                () => validator.ValidateAsync(request, ct)).ConfigureAwait(false);
-            wideEvent.RecordValidation();
-            RecordStageEvent(activity, StageNames.Validation, validationMs);
-
-            if (validated.IsError)
-            {
-                wideEvent.WithResultContext(validated.Context);
-                RecordOutcome(activity, OutcomeNames.ValidationFailure);
-                emitter.Emit(wideEvent.WithFeatureContext(context).ValidationFailure(validated.Errors));
-                return new VsaResult<TResult>(validated.Errors, validated._context);
-            }
-
-            // Requirements stage (with child span)
-            var requirements = feature.Requirements ?? NoOpRequirements<TRequest>.Instance;
-            wideEvent.StartStage(StageNames.Requirements, requirements.GetType(), MethodNames.EnforceAsync);
-            var (enforced, requirementsMs) = await ExecuteStageAsync(
-                featureName,
-                StageNames.Requirements,
-                () => requirements.EnforceAsync(validated.Value, ct)).ConfigureAwait(false);
-            wideEvent.RecordRequirements();
-            RecordStageEvent(activity, StageNames.Requirements, requirementsMs);
-
-            if (enforced.IsError)
-            {
-                wideEvent.WithResultContext(enforced.Context);
-                RecordOutcome(activity, OutcomeNames.RequirementsFailure);
-                emitter.Emit(wideEvent.WithFeatureContext(context).RequirementsFailure(enforced.Errors));
-                return new VsaResult<TResult>(enforced.Errors, enforced._context);
-            }
-
-            context = enforced.Value;
-
-            // Enrich with request metadata (IP, user agent, etc.)
-            EnrichWithRequestMetadata(context);
-
-            // Execution stage (with child span)
-            var query = feature.Query ?? throw new InvalidOperationException(ExceptionMessages.QueryRequired);
-            wideEvent.StartStage(StageNames.Execution, query.GetType(), MethodNames.ExecuteAsync);
-            var (result, executionMs) = await ExecuteStageAsync(
-                featureName,
-                StageNames.Execution,
-                () => query.ExecuteAsync(context, ct)).ConfigureAwait(false);
-            wideEvent.RecordExecution();
-            RecordStageEvent(activity, StageNames.Execution, executionMs);
-
-            if (result.IsError)
-            {
-                wideEvent.WithResultContext(result.Context);
-                RecordOutcome(activity, OutcomeNames.ExecutionFailure);
-                emitter.Emit(wideEvent.WithFeatureContext(context).ExecutionFailure(result.Errors));
-                return result;
-            }
-
-            wideEvent.WithResultContext(result.Context);
-            RecordOutcome(activity, OutcomeNames.Success);
-            emitter.Emit(wideEvent.WithFeatureContext(context).Success());
-            return result;
-        }
-        catch (Exception ex)
-        {
-            RecordException(activity, ex);
-            emitter.Emit(wideEvent.WithFeatureContext(context).Exception(ex));
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Executes a mutation feature using the unified wide events system.
-    /// Automatically integrates with <see cref="WideEventScope"/> for aggregation.
-    /// </summary>
-    /// <typeparam name="TRequest">The type of the request.</typeparam>
-    /// <typeparam name="TResult">The type of the result.</typeparam>
-    /// <param name="feature">The feature to execute.</param>
-    /// <param name="request">The request to process.</param>
-    /// <param name="emitter">The unified wide event emitter.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>The result or errors from execution.</returns>
-    public static async Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
-        this IMutationFeature<TRequest, TResult> feature,
-        TRequest request,
-        IUnifiedWideEventEmitter emitter,
-        CancellationToken ct = default)
-    {
-        var featureName = feature.GetType().DeclaringType?.Name ?? feature.GetType().Name;
-        using var activity = StartFeatureActivity<TRequest, TResult>(featureName, FeatureTypes.Mutation);
-        var builder = WideEvent.StartFeature(featureName, FeatureTypes.Mutation)
-            .WithTypes<TRequest, TResult>()
-            .WithRequestContext(request)
-            .WithPipelineStages(
-                feature.Validator?.GetType(),
-                feature.Requirements?.GetType(),
-                feature.Mutator?.GetType(),
-                feature.SideEffects?.GetType(),
-                isMutation: true);
-
-        FeatureContext<TRequest>? context = null;
-
-        try
-        {
-            // Validation stage (with child span)
-            var validator = feature.Validator ?? NoOpValidator<TRequest>.Instance;
+            // Validation stage
             builder.StartStage(StageNames.Validation, validator.GetType(), MethodNames.ValidateAsync);
             var (validated, validationMs) = await ExecuteStageAsync(
                 featureName,
@@ -285,12 +113,13 @@ public static class FeatureExecutionExtensions
             {
                 builder.WithResultContext(validated.Context);
                 RecordOutcome(activity, OutcomeNames.ValidationFailure);
-                emitter.Emit(builder.WithFeatureContext(context).ValidationFailure(validated.Errors));
+                await emitter.EmitAsync(builder.WithFeatureContext(context).ValidationFailure(validated.Errors), ct).ConfigureAwait(false);
                 return new VsaResult<TResult>(validated.Errors, validated._context);
             }
 
-            // Requirements stage (with child span)
-            var requirements = feature.Requirements ?? NoOpRequirements<TRequest>.Instance;
+            ct.ThrowIfCancellationRequested();
+
+            // Requirements stage
             builder.StartStage(StageNames.Requirements, requirements.GetType(), MethodNames.EnforceAsync);
             var (enforced, requirementsMs) = await ExecuteStageAsync(
                 featureName,
@@ -303,7 +132,7 @@ public static class FeatureExecutionExtensions
             {
                 builder.WithResultContext(enforced.Context);
                 RecordOutcome(activity, OutcomeNames.RequirementsFailure);
-                emitter.Emit(builder.WithFeatureContext(context).RequirementsFailure(enforced.Errors));
+                await emitter.EmitAsync(builder.WithFeatureContext(context).RequirementsFailure(enforced.Errors), ct).ConfigureAwait(false);
                 return new VsaResult<TResult>(enforced.Errors, enforced._context);
             }
 
@@ -312,13 +141,14 @@ public static class FeatureExecutionExtensions
             // Enrich with request metadata (IP, user agent, etc.)
             EnrichWithRequestMetadata(context);
 
-            // Execution stage (with child span)
-            var mutator = feature.Mutator ?? throw new InvalidOperationException(ExceptionMessages.MutatorRequired);
-            builder.StartStage(StageNames.Execution, mutator.GetType(), MethodNames.ExecuteAsync);
+            ct.ThrowIfCancellationRequested();
+
+            // Execution stage
+            builder.StartStage(StageNames.Execution, execute.Target?.GetType(), MethodNames.ExecuteAsync);
             var (result, executionMs) = await ExecuteStageAsync(
                 featureName,
                 StageNames.Execution,
-                () => mutator.ExecuteAsync(context, ct)).ConfigureAwait(false);
+                () => execute(context, ct)).ConfigureAwait(false);
             builder.RecordExecution();
             RecordStageEvent(activity, StageNames.Execution, executionMs);
 
@@ -326,142 +156,41 @@ public static class FeatureExecutionExtensions
             {
                 builder.WithResultContext(result.Context);
                 RecordOutcome(activity, OutcomeNames.ExecutionFailure);
-                emitter.Emit(builder.WithFeatureContext(context).ExecutionFailure(result.Errors));
+                await emitter.EmitAsync(builder.WithFeatureContext(context).ExecutionFailure(result.Errors), ct).ConfigureAwait(false);
                 return result;
             }
 
-            // Side effects stage (with child span)
-            var sideEffects = feature.SideEffects ?? NoOpSideEffects<TRequest>.Instance;
-            builder.StartStage(StageNames.SideEffects, sideEffects.GetType(), MethodNames.ExecuteAsync);
-            var (effects, sideEffectsMs) = await ExecuteStageAsync(
-                featureName,
-                StageNames.SideEffects,
-                () => sideEffects.ExecuteAsync(context, ct)).ConfigureAwait(false);
-            builder.RecordSideEffects();
-            RecordStageEvent(activity, StageNames.SideEffects, sideEffectsMs);
-
-            if (effects.IsError)
+            // Side effects stage (mutations only)
+            if (sideEffects != null)
             {
-                builder.WithResultContext(effects.Context);
-                RecordOutcome(activity, OutcomeNames.SideEffectsFailure);
-                emitter.Emit(builder.WithFeatureContext(context).SideEffectsFailure(effects.Errors));
-                return new VsaResult<TResult>(effects.Errors, effects._context);
+                ct.ThrowIfCancellationRequested();
+
+                builder.StartStage(StageNames.SideEffects, sideEffects.GetType(), MethodNames.ExecuteAsync);
+                var (effects, sideEffectsMs) = await ExecuteStageAsync(
+                    featureName,
+                    StageNames.SideEffects,
+                    () => sideEffects.ExecuteAsync(context, ct)).ConfigureAwait(false);
+                builder.RecordSideEffects();
+                RecordStageEvent(activity, StageNames.SideEffects, sideEffectsMs);
+
+                if (effects.IsError)
+                {
+                    builder.WithResultContext(effects.Context);
+                    RecordOutcome(activity, OutcomeNames.SideEffectsFailure);
+                    await emitter.EmitAsync(builder.WithFeatureContext(context).SideEffectsFailure(effects.Errors), ct).ConfigureAwait(false);
+                    return new VsaResult<TResult>(effects.Errors, effects._context);
+                }
             }
 
             builder.WithResultContext(result.Context);
             RecordOutcome(activity, OutcomeNames.Success);
-            emitter.Emit(builder.WithFeatureContext(context).Success());
+            await emitter.EmitAsync(builder.WithFeatureContext(context).Success(), ct).ConfigureAwait(false);
             return result;
         }
         catch (Exception ex)
         {
             RecordException(activity, ex);
-            emitter.Emit(builder.WithFeatureContext(context).Exception(ex));
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Executes a query feature using the unified wide events system.
-    /// Automatically integrates with <see cref="WideEventScope"/> for aggregation.
-    /// </summary>
-    /// <typeparam name="TRequest">The type of the request.</typeparam>
-    /// <typeparam name="TResult">The type of the result.</typeparam>
-    /// <param name="feature">The feature to execute.</param>
-    /// <param name="request">The request to process.</param>
-    /// <param name="emitter">The unified wide event emitter.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>The result or errors from execution.</returns>
-    public static async Task<VsaResult<TResult>> ExecuteAsync<TRequest, TResult>(
-        this IQueryFeature<TRequest, TResult> feature,
-        TRequest request,
-        IUnifiedWideEventEmitter emitter,
-        CancellationToken ct = default)
-    {
-        var featureName = feature.GetType().DeclaringType?.Name ?? feature.GetType().Name;
-        using var activity = StartFeatureActivity<TRequest, TResult>(featureName, FeatureTypes.Query);
-        var builder = WideEvent.StartFeature(featureName, FeatureTypes.Query)
-            .WithTypes<TRequest, TResult>()
-            .WithRequestContext(request)
-            .WithPipelineStages(
-                feature.Validator?.GetType(),
-                feature.Requirements?.GetType(),
-                feature.Query?.GetType(),
-                sideEffectsType: null,
-                isMutation: false);
-
-        FeatureContext<TRequest>? context = null;
-
-        try
-        {
-            // Validation stage (with child span)
-            var validator = feature.Validator ?? NoOpValidator<TRequest>.Instance;
-            builder.StartStage(StageNames.Validation, validator.GetType(), MethodNames.ValidateAsync);
-            var (validated, validationMs) = await ExecuteStageAsync(
-                featureName,
-                StageNames.Validation,
-                () => validator.ValidateAsync(request, ct)).ConfigureAwait(false);
-            builder.RecordValidation();
-            RecordStageEvent(activity, StageNames.Validation, validationMs);
-
-            if (validated.IsError)
-            {
-                builder.WithResultContext(validated.Context);
-                RecordOutcome(activity, OutcomeNames.ValidationFailure);
-                emitter.Emit(builder.WithFeatureContext(context).ValidationFailure(validated.Errors));
-                return new VsaResult<TResult>(validated.Errors, validated._context);
-            }
-
-            // Requirements stage (with child span)
-            var requirements = feature.Requirements ?? NoOpRequirements<TRequest>.Instance;
-            builder.StartStage(StageNames.Requirements, requirements.GetType(), MethodNames.EnforceAsync);
-            var (enforced, requirementsMs) = await ExecuteStageAsync(
-                featureName,
-                StageNames.Requirements,
-                () => requirements.EnforceAsync(validated.Value, ct)).ConfigureAwait(false);
-            builder.RecordRequirements();
-            RecordStageEvent(activity, StageNames.Requirements, requirementsMs);
-
-            if (enforced.IsError)
-            {
-                builder.WithResultContext(enforced.Context);
-                RecordOutcome(activity, OutcomeNames.RequirementsFailure);
-                emitter.Emit(builder.WithFeatureContext(context).RequirementsFailure(enforced.Errors));
-                return new VsaResult<TResult>(enforced.Errors, enforced._context);
-            }
-
-            context = enforced.Value;
-
-            // Enrich with request metadata (IP, user agent, etc.)
-            EnrichWithRequestMetadata(context);
-
-            // Execution stage (with child span)
-            var query = feature.Query ?? throw new InvalidOperationException(ExceptionMessages.QueryRequired);
-            builder.StartStage(StageNames.Execution, query.GetType(), MethodNames.ExecuteAsync);
-            var (result, executionMs) = await ExecuteStageAsync(
-                featureName,
-                StageNames.Execution,
-                () => query.ExecuteAsync(context, ct)).ConfigureAwait(false);
-            builder.RecordExecution();
-            RecordStageEvent(activity, StageNames.Execution, executionMs);
-
-            if (result.IsError)
-            {
-                builder.WithResultContext(result.Context);
-                RecordOutcome(activity, OutcomeNames.ExecutionFailure);
-                emitter.Emit(builder.WithFeatureContext(context).ExecutionFailure(result.Errors));
-                return result;
-            }
-
-            builder.WithResultContext(result.Context);
-            RecordOutcome(activity, OutcomeNames.Success);
-            emitter.Emit(builder.WithFeatureContext(context).Success());
-            return result;
-        }
-        catch (Exception ex)
-        {
-            RecordException(activity, ex);
-            emitter.Emit(builder.WithFeatureContext(context).Exception(ex));
+            await emitter.EmitAsync(builder.WithFeatureContext(context).Exception(ex)).ConfigureAwait(false);
             throw;
         }
     }
@@ -522,7 +251,6 @@ public static class FeatureExecutionExtensions
 
     private static void RecordStageEvent(Activity? activity, string stage, double? durationMs)
     {
-        // Legacy: keep events for backwards compatibility with existing log analysis
         if (activity == null || durationMs is null)
         {
             return;
@@ -584,16 +312,13 @@ public static class FeatureExecutionExtensions
             return;
         }
 
-        activity.AddEvent(new ActivityEvent("exception"));
         activity.SetTag("feature.outcome", OutcomeNames.Exception);
-    }
-
-    private static async Task<(TResult Result, double DurationMs)> MeasureAsync<TResult>(Func<Task<TResult>> action)
-    {
-        var stopwatch = Stopwatch.StartNew();
-        var result = await action().ConfigureAwait(false);
-        stopwatch.Stop();
-        return (result, stopwatch.Elapsed.TotalMilliseconds);
+        activity.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
+        {
+            { "exception.type", ex.GetType().FullName },
+            { "exception.message", ex.Message },
+            { "exception.stacktrace", ex.StackTrace },
+        }));
     }
 
     private static class FeatureTypes

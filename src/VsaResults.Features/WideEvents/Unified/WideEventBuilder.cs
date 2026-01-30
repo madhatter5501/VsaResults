@@ -277,13 +277,13 @@ public sealed partial class WideEventBuilder
         if (validatorType != null)
         {
             _event.Feature.ValidatorType = validatorType.Name;
-            _event.Feature.HasCustomValidator = !validatorType.Name.StartsWith("NoOpValidator", StringComparison.Ordinal);
+            _event.Feature.HasCustomValidator = !IsNoOpType(validatorType, typeof(NoOpValidator<>));
         }
 
         if (requirementsType != null)
         {
             _event.Feature.RequirementsType = requirementsType.Name;
-            _event.Feature.HasCustomRequirements = !requirementsType.Name.StartsWith("NoOpRequirements", StringComparison.Ordinal);
+            _event.Feature.HasCustomRequirements = !IsNoOpType(requirementsType, typeof(NoOpRequirements<>));
         }
 
         if (mutatorOrQueryType != null)
@@ -301,7 +301,7 @@ public sealed partial class WideEventBuilder
         if (sideEffectsType != null)
         {
             _event.Feature.SideEffectsType = sideEffectsType.Name;
-            _event.Feature.HasCustomSideEffects = !sideEffectsType.Name.StartsWith("NoOpSideEffects", StringComparison.Ordinal);
+            _event.Feature.HasCustomSideEffects = !IsNoOpType(sideEffectsType, typeof(NoOpSideEffects<>));
         }
 
         return this;
@@ -433,6 +433,16 @@ public sealed partial class WideEventBuilder
     }
 
     /// <summary>
+    /// Records the duration of the binding stage.
+    /// Stores timing in the event context as "binding_ms".
+    /// </summary>
+    public void RecordBinding()
+    {
+        _event.Context["binding_ms"] = _stageStopwatch.Elapsed.TotalMilliseconds;
+        _stageStopwatch.Reset();
+    }
+
+    /// <summary>
     /// Records the duration of the validation stage.
     /// </summary>
     public void RecordValidation()
@@ -545,6 +555,19 @@ public sealed partial class WideEventBuilder
     public WideEvent Success()
     {
         _event.Outcome = "success";
+        return Build();
+    }
+
+    /// <summary>
+    /// Marks the operation as failed due to request binding.
+    /// </summary>
+    /// <param name="errors">The binding errors.</param>
+    /// <returns>The completed wide event.</returns>
+    public WideEvent BindingFailure(IReadOnlyList<Error> errors)
+    {
+        _event.Outcome = "binding_failure";
+        _event.Error = WideEventErrorSegment.FromErrors(errors, "binding");
+        PopulateFailureLocation();
         return Build();
     }
 
@@ -715,6 +738,9 @@ public sealed partial class WideEventBuilder
             return result;
         });
     }
+
+    private static bool IsNoOpType(Type type, Type noOpOpenGeneric)
+        => type.IsGenericType && type.GetGenericTypeDefinition() == noOpOpenGeneric;
 
     private static string ToSnakeCase(string input)
     {

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using VsaResults;
+using VsaResults.WideEvents;
 
 namespace Tests;
 
@@ -40,9 +41,9 @@ public class FeaturePipelineTests
 
     public sealed class TestQuery : IFeatureQuery<TestRequest, TestResult>
     {
-        public Task<VsaResult<TestResult>> ExecuteAsync(TestRequest request, CancellationToken ct = default)
+        public Task<VsaResult<TestResult>> ExecuteAsync(FeatureContext<TestRequest> context, CancellationToken ct = default)
         {
-            return Task.FromResult<VsaResult<TestResult>>(new TestResult($"Queried: {request.Value}"));
+            return Task.FromResult<VsaResult<TestResult>>(new TestResult($"Queried: {context.Request.Value}"));
         }
     }
 
@@ -83,9 +84,15 @@ public class FeaturePipelineTests
     // Capture emitter for testing
     public sealed class CaptureWideEventEmitter : IWideEventEmitter
     {
-        public FeatureWideEvent? LastEvent { get; private set; }
+        public WideEvent? LastEvent { get; private set; }
 
-        public void Emit(FeatureWideEvent wideEvent)
+        public ValueTask EmitAsync(WideEvent wideEvent, CancellationToken ct = default)
+        {
+            LastEvent = wideEvent;
+            return ValueTask.CompletedTask;
+        }
+
+        public void Emit(WideEvent wideEvent)
         {
             LastEvent = wideEvent;
         }
@@ -109,7 +116,7 @@ public class FeaturePipelineTests
         emitter.LastEvent.Should().NotBeNull();
 
         emitter.LastEvent!.Outcome.Should().Be("success");
-        emitter.LastEvent.FeatureType.Should().Be("Mutation");
+        emitter.LastEvent.Feature!.FeatureType.Should().Be("Mutation");
     }
 
     [Fact]
@@ -127,7 +134,7 @@ public class FeaturePipelineTests
         result.ShouldBeValidationError("Test.ValidationFailed");
         emitter.LastEvent.Should().NotBeNull();
         emitter.LastEvent!.Outcome.Should().Be("validation_failure");
-        emitter.LastEvent.FailedAtStage.Should().Be("validation");
+        emitter.LastEvent.Error!.FailedAtStage.Should().Be("validation");
     }
 
     [Fact]
@@ -194,9 +201,9 @@ public class FeaturePipelineTests
         // Assert
         emitter.LastEvent.Should().NotBeNull();
         emitter.LastEvent!.TotalMs.Should().BeGreaterOrEqualTo(0);
-        emitter.LastEvent.ValidationMs.Should().BeGreaterOrEqualTo(0);
-        emitter.LastEvent.RequirementsMs.Should().BeGreaterOrEqualTo(0);
-        emitter.LastEvent.ExecutionMs.Should().BeGreaterOrEqualTo(0);
+        emitter.LastEvent.Feature!.ValidationMs.Should().BeGreaterOrEqualTo(0);
+        emitter.LastEvent.Feature.RequirementsMs.Should().BeGreaterOrEqualTo(0);
+        emitter.LastEvent.Feature.ExecutionMs.Should().BeGreaterOrEqualTo(0);
     }
 
     [Fact]
@@ -212,8 +219,8 @@ public class FeaturePipelineTests
 
         // Assert
         emitter.LastEvent.Should().NotBeNull();
-        emitter.LastEvent!.RequestType.Should().Be(nameof(TestRequest));
-        emitter.LastEvent.ResultType.Should().Be(nameof(TestResult));
+        emitter.LastEvent!.Feature!.RequestType.Should().Be(nameof(TestRequest));
+        emitter.LastEvent.Feature.ResultType.Should().Be(nameof(TestResult));
     }
 
     // ==================== Side Effects Tests ====================
@@ -241,7 +248,7 @@ public class FeaturePipelineTests
         emitter.LastEvent.Should().NotBeNull();
 
         emitter.LastEvent!.Outcome.Should().Be("side_effects_failure");
-        emitter.LastEvent.FailedAtStage.Should().Be("side_effects");
+        emitter.LastEvent.Error!.FailedAtStage.Should().Be("side_effects");
     }
 
     [Fact]
@@ -258,7 +265,7 @@ public class FeaturePipelineTests
         // Assert
         emitter.LastEvent.Should().NotBeNull();
         emitter.LastEvent!.Outcome.Should().Be("success");
-        emitter.LastEvent.SideEffectsMs.Should().BeGreaterOrEqualTo(0);
+        emitter.LastEvent.Feature!.SideEffectsMs.Should().BeGreaterOrEqualTo(0);
     }
 
     public sealed class DelayedSideEffects : IFeatureSideEffects<TestRequest>
@@ -323,9 +330,9 @@ public class FeaturePipelineTests
 
         // Assert - Context captured in wide event
         emitter.LastEvent.Should().NotBeNull();
-        emitter.LastEvent!.RequestContext.Should().ContainKey("user_id");
-        emitter.LastEvent.RequestContext["user_id"].Should().Be(123);
-        emitter.LastEvent.LoadedEntities.Should().ContainKey("user");
+        emitter.LastEvent!.Context.Should().ContainKey("user_id");
+        emitter.LastEvent.Context["user_id"].Should().Be(123);
+        emitter.LastEvent.Feature!.LoadedEntities.Should().ContainKey("user");
     }
 
     [Fact]
@@ -341,10 +348,11 @@ public class FeaturePipelineTests
 
         // Assert
         emitter.LastEvent.Should().NotBeNull();
-        emitter.LastEvent!.ErrorCode.Should().Be("Test.ValidationFailed");
-        emitter.LastEvent.ErrorMessage.Should().Be("Validation failed");
-        emitter.LastEvent.ErrorType.Should().Be("Validation");
-        emitter.LastEvent.ErrorCount.Should().Be(1);
+        emitter.LastEvent!.Error.Should().NotBeNull();
+        emitter.LastEvent.Error!.Code.Should().Be("Test.ValidationFailed");
+        emitter.LastEvent.Error.Message.Should().Be("Validation failed");
+        emitter.LastEvent.Error.Type.Should().Be("Validation");
+        emitter.LastEvent.Error.Count.Should().Be(1);
     }
 
     // ==================== Exception Handling Tests ====================
@@ -395,11 +403,11 @@ public class FeaturePipelineTests
         // Wide event should still be emitted with exception details
         emitter.LastEvent.Should().NotBeNull();
         emitter.LastEvent!.Outcome.Should().Be("exception");
-        emitter.LastEvent.FailedAtStage.Should().Be("validation");
-        emitter.LastEvent.FailedInClass.Should().Be("ThrowingValidator");
-        emitter.LastEvent.FailedInMethod.Should().Be("ValidateAsync");
-        emitter.LastEvent.ExceptionType.Should().Contain("InvalidOperationException");
-        emitter.LastEvent.ExceptionMessage.Should().Be("Validator exploded");
+        emitter.LastEvent.Error!.FailedAtStage.Should().Be("validation");
+        emitter.LastEvent.Error.FailedInClass.Should().Be("ThrowingValidator");
+        emitter.LastEvent.Error.FailedInMethod.Should().Be("ValidateAsync");
+        emitter.LastEvent.Error.ExceptionType.Should().Contain("InvalidOperationException");
+        emitter.LastEvent.Error.ExceptionMessage.Should().Be("Validator exploded");
     }
 
     [Fact]
@@ -416,10 +424,10 @@ public class FeaturePipelineTests
 
         emitter.LastEvent.Should().NotBeNull();
         emitter.LastEvent!.Outcome.Should().Be("exception");
-        emitter.LastEvent.FailedAtStage.Should().Be("requirements");
-        emitter.LastEvent.FailedInClass.Should().Be("ThrowingRequirements");
-        emitter.LastEvent.FailedInMethod.Should().Be("EnforceAsync");
-        emitter.LastEvent.ExceptionMessage.Should().Be("Requirements exploded");
+        emitter.LastEvent.Error!.FailedAtStage.Should().Be("requirements");
+        emitter.LastEvent.Error.FailedInClass.Should().Be("ThrowingRequirements");
+        emitter.LastEvent.Error.FailedInMethod.Should().Be("EnforceAsync");
+        emitter.LastEvent.Error.ExceptionMessage.Should().Be("Requirements exploded");
     }
 
     [Fact]
@@ -436,10 +444,10 @@ public class FeaturePipelineTests
 
         emitter.LastEvent.Should().NotBeNull();
         emitter.LastEvent!.Outcome.Should().Be("exception");
-        emitter.LastEvent.FailedAtStage.Should().Be("execution");
-        emitter.LastEvent.FailedInClass.Should().Be("ThrowingMutator");
-        emitter.LastEvent.FailedInMethod.Should().Be("ExecuteAsync");
-        emitter.LastEvent.ExceptionMessage.Should().Be("Mutator exploded");
+        emitter.LastEvent.Error!.FailedAtStage.Should().Be("execution");
+        emitter.LastEvent.Error.FailedInClass.Should().NotBeNull();
+        emitter.LastEvent.Error.FailedInMethod.Should().Be("ExecuteAsync");
+        emitter.LastEvent.Error.ExceptionMessage.Should().Be("Mutator exploded");
     }
 
     [Fact]
@@ -456,10 +464,10 @@ public class FeaturePipelineTests
 
         emitter.LastEvent.Should().NotBeNull();
         emitter.LastEvent!.Outcome.Should().Be("exception");
-        emitter.LastEvent.FailedAtStage.Should().Be("side_effects");
-        emitter.LastEvent.FailedInClass.Should().Be("ThrowingSideEffects");
-        emitter.LastEvent.FailedInMethod.Should().Be("ExecuteAsync");
-        emitter.LastEvent.ExceptionMessage.Should().Be("Side effects exploded");
+        emitter.LastEvent.Error!.FailedAtStage.Should().Be("side_effects");
+        emitter.LastEvent.Error.FailedInClass.Should().NotBeNull();
+        emitter.LastEvent.Error.FailedInMethod.Should().Be("ExecuteAsync");
+        emitter.LastEvent.Error.ExceptionMessage.Should().Be("Side effects exploded");
     }
 
     // ==================== Pipeline Stage Type Recording Tests ====================
@@ -476,10 +484,9 @@ public class FeaturePipelineTests
 
         // Assert
         emitter.LastEvent.Should().NotBeNull();
-        emitter.LastEvent!.ValidatorType.Should().NotBeNullOrEmpty();
-        emitter.LastEvent.RequirementsType.Should().NotBeNullOrEmpty();
-        emitter.LastEvent.MutatorType.Should().NotBeNullOrEmpty();
-        emitter.LastEvent.SideEffectsType.Should().NotBeNullOrEmpty();
+        emitter.LastEvent!.Feature!.ValidatorType.Should().NotBeNullOrEmpty();
+        emitter.LastEvent.Feature.RequirementsType.Should().NotBeNullOrEmpty();
+        emitter.LastEvent.Feature.SideEffectsType.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
@@ -495,9 +502,9 @@ public class FeaturePipelineTests
 
         // Assert
         emitter.LastEvent.Should().NotBeNull();
-        emitter.LastEvent!.HasCustomValidator.Should().BeFalse();
-        emitter.LastEvent.HasCustomRequirements.Should().BeFalse();
-        emitter.LastEvent.HasCustomSideEffects.Should().BeFalse();
+        emitter.LastEvent!.Feature!.HasCustomValidator.Should().BeFalse();
+        emitter.LastEvent.Feature.HasCustomRequirements.Should().BeFalse();
+        emitter.LastEvent.Feature.HasCustomSideEffects.Should().BeFalse();
     }
 
     [Fact]
@@ -518,9 +525,9 @@ public class FeaturePipelineTests
 
         // Assert
         emitter.LastEvent.Should().NotBeNull();
-        emitter.LastEvent!.HasCustomValidator.Should().BeTrue();
-        emitter.LastEvent.HasCustomRequirements.Should().BeTrue();
-        emitter.LastEvent.HasCustomSideEffects.Should().BeTrue();
+        emitter.LastEvent!.Feature!.HasCustomValidator.Should().BeTrue();
+        emitter.LastEvent.Feature.HasCustomRequirements.Should().BeTrue();
+        emitter.LastEvent.Feature.HasCustomSideEffects.Should().BeTrue();
     }
 
     // ==================== Multiple Errors Tests ====================
@@ -551,16 +558,17 @@ public class FeaturePipelineTests
 
         // Assert
         emitter.LastEvent.Should().NotBeNull();
-        emitter.LastEvent!.ErrorCount.Should().Be(3);
-        emitter.LastEvent.ErrorCode.Should().Be("Name.Required"); // First error
-        emitter.LastEvent.ErrorDescription.Should().Contain("Email.Invalid");
-        emitter.LastEvent.ErrorDescription.Should().Contain("Age.OutOfRange");
+        emitter.LastEvent!.Error.Should().NotBeNull();
+        emitter.LastEvent.Error!.Count.Should().Be(3);
+        emitter.LastEvent.Error.Code.Should().Be("Name.Required"); // First error
+        emitter.LastEvent.Error.AllDescriptions.Should().Contain("Email.Invalid");
+        emitter.LastEvent.Error.AllDescriptions.Should().Contain("Age.OutOfRange");
     }
 
     // ==================== Query Feature Failure Tests ====================
     public sealed class FailingQuery : IFeatureQuery<TestRequest, TestResult>
     {
-        public Task<VsaResult<TestResult>> ExecuteAsync(TestRequest request, CancellationToken ct = default)
+        public Task<VsaResult<TestResult>> ExecuteAsync(FeatureContext<TestRequest> context, CancellationToken ct = default)
         {
             return Task.FromResult<VsaResult<TestResult>>(Error.Failure("Query.Failed", "Query execution failed"));
         }
@@ -568,7 +576,7 @@ public class FeaturePipelineTests
 
     public sealed class ThrowingQuery : IFeatureQuery<TestRequest, TestResult>
     {
-        public Task<VsaResult<TestResult>> ExecuteAsync(TestRequest request, CancellationToken ct = default)
+        public Task<VsaResult<TestResult>> ExecuteAsync(FeatureContext<TestRequest> context, CancellationToken ct = default)
         {
             throw new InvalidOperationException("Query exploded");
         }
@@ -590,8 +598,8 @@ public class FeaturePipelineTests
         emitter.LastEvent.Should().NotBeNull();
 
         emitter.LastEvent!.Outcome.Should().Be("execution_failure");
-        emitter.LastEvent.FailedAtStage.Should().Be("execution");
-        emitter.LastEvent.FeatureType.Should().Be("Query");
+        emitter.LastEvent.Error!.FailedAtStage.Should().Be("execution");
+        emitter.LastEvent.Feature!.FeatureType.Should().Be("Query");
     }
 
     [Fact]
@@ -609,12 +617,10 @@ public class FeaturePipelineTests
         // Wide event should still be emitted with exception details
         emitter.LastEvent.Should().NotBeNull();
         emitter.LastEvent!.Outcome.Should().Be("exception");
-        emitter.LastEvent.FailedAtStage.Should().Be("execution");
-        emitter.LastEvent.FailedInClass.Should().Be("ThrowingQuery");
-        emitter.LastEvent.FailedInMethod.Should().Be("ExecuteAsync");
-        emitter.LastEvent.ExceptionType.Should().Contain("InvalidOperationException");
-        emitter.LastEvent.ExceptionMessage.Should().Be("Query exploded");
-        emitter.LastEvent.FeatureType.Should().Be("Query");
+        emitter.LastEvent.Error!.FailedAtStage.Should().Be("execution");
+        emitter.LastEvent.Error.ExceptionType.Should().Contain("InvalidOperationException");
+        emitter.LastEvent.Error.ExceptionMessage.Should().Be("Query exploded");
+        emitter.LastEvent.Feature!.FeatureType.Should().Be("Query");
     }
 
     // ==================== Null Mutator/Query Tests ====================
@@ -686,8 +692,8 @@ public class FeaturePipelineTests
         // Assert
         emitter.LastEvent.Should().NotBeNull();
         emitter.LastEvent!.Outcome.Should().Be("success");
-        emitter.LastEvent.RequestContext.Should().ContainKey("mutator_added_key");
-        emitter.LastEvent.RequestContext["mutator_added_key"].Should().Be("mutator_value");
+        emitter.LastEvent.Context.Should().ContainKey("mutator_added_key");
+        emitter.LastEvent.Context["mutator_added_key"].Should().Be("mutator_value");
     }
 
     // ==================== Feature Name Extraction Tests ====================
@@ -717,7 +723,7 @@ public class FeaturePipelineTests
         emitter.LastEvent.Should().NotBeNull();
 
         // Should use the declaring type name (OuterClass) rather than the nested type name
-        emitter.LastEvent!.FeatureName.Should().Be("OuterClass");
+        emitter.LastEvent!.Feature!.FeatureName.Should().Be("OuterClass");
     }
 
     // Concurrency Tests
@@ -865,7 +871,7 @@ public class FeaturePipelineTests
 
         var uniqueIds = emitters
             .Where(e => e.LastEvent != null)
-            .Select(e => e.LastEvent!.RequestContext["unique_id"])
+            .Select(e => e.LastEvent!.Context["unique_id"])
             .ToList();
 
         // All unique IDs should be distinct - no context leakage

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using VsaResults.WideEvents;
 
 namespace VsaResults;
 

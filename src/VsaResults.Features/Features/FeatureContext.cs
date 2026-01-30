@@ -33,6 +33,9 @@ namespace VsaResults;
 /// </remarks>
 public sealed class FeatureContext<TRequest>
 {
+    private readonly Dictionary<string, object> _entities = new();
+    private readonly Dictionary<string, object?> _wideEventContext = new();
+
     /// <summary>
     /// Gets the validated request being processed.
     /// </summary>
@@ -42,13 +45,13 @@ public sealed class FeatureContext<TRequest>
     /// Gets the entities loaded during requirements enforcement.
     /// Use SetEntity/GetEntity for type-safe access.
     /// </summary>
-    public Dictionary<string, object> Entities { get; } = new();
+    public IReadOnlyDictionary<string, object> Entities => _entities;
 
     /// <summary>
     /// Gets the context to be included in the wide event log.
     /// Add business-relevant data here during feature execution.
     /// </summary>
-    public Dictionary<string, object?> WideEventContext { get; } = new();
+    public IReadOnlyDictionary<string, object?> WideEventContext => _wideEventContext;
 
     /// <summary>
     /// Gets a previously stored entity by key.
@@ -56,7 +59,7 @@ public sealed class FeatureContext<TRequest>
     /// <typeparam name="T">The type of the entity.</typeparam>
     /// <param name="key">The storage key.</param>
     /// <returns>The entity cast to the specified type.</returns>
-    public T GetEntity<T>(string key) => (T)Entities[key];
+    public T GetEntity<T>(string key) => (T)_entities[key];
 
     /// <summary>
     /// Tries to get a previously stored entity by key.
@@ -67,7 +70,7 @@ public sealed class FeatureContext<TRequest>
     /// <returns>True if the entity was found.</returns>
     public bool TryGetEntity<T>(string key, out T? value)
     {
-        if (Entities.TryGetValue(key, out var obj) && obj is T typed)
+        if (_entities.TryGetValue(key, out var obj) && obj is T typed)
         {
             value = typed;
             return true;
@@ -85,7 +88,7 @@ public sealed class FeatureContext<TRequest>
     /// <param name="value">The entity to store.</param>
     public void SetEntity<T>(string key, T value)
         where T : notnull
-        => Entities[key] = value;
+        => _entities[key] = value;
 
     /// <summary>
     /// Adds context to be included in the wide event log.
@@ -96,7 +99,7 @@ public sealed class FeatureContext<TRequest>
     /// <returns>This context for fluent chaining.</returns>
     public FeatureContext<TRequest> AddContext(string key, object? value)
     {
-        WideEventContext[key] = value;
+        _wideEventContext[key] = value;
         return this;
     }
 
@@ -109,7 +112,7 @@ public sealed class FeatureContext<TRequest>
     {
         foreach (var (key, value) in pairs)
         {
-            WideEventContext[key] = value;
+            _wideEventContext[key] = value;
         }
 
         return this;

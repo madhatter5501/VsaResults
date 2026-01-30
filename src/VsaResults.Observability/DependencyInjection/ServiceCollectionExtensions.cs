@@ -75,7 +75,7 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Adds the PII masking interceptor to the wide events pipeline.
     /// Call this after <see cref="AddPiiMasking(IServiceCollection)"/> and
-    /// <c>AddUnifiedWideEvents()</c>.
+    /// <c>AddWideEvents()</c>.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection for chaining.</returns>
