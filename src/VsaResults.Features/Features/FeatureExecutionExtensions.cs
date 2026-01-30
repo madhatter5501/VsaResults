@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Diagnostics;
+using System.Reflection;
 using VsaResults.WideEvents;
 
 namespace VsaResults;
@@ -9,6 +11,7 @@ namespace VsaResults;
 public static class FeatureExecutionExtensions
 {
     private static readonly ActivitySource FeatureActivitySource = new("VsaResults.Features");
+    private static readonly Dictionary<Type, PropertyInfo?> CollectionPropertyCache = new();
 
     /// <summary>
     /// Executes a mutation feature through the full pipeline:
@@ -182,6 +185,9 @@ public static class FeatureExecutionExtensions
                 }
             }
 
+            // Auto-inspect result for collection count (only if not already set manually)
+            InspectResultCount(context, result.Value);
+
             builder.WithResultContext(result.Context);
             RecordOutcome(activity, OutcomeNames.Success);
             await emitter.EmitAsync(builder.WithFeatureContext(context).Success(), ct).ConfigureAwait(false);
@@ -319,6 +325,86 @@ public static class FeatureExecutionExtensions
             { "exception.message", ex.Message },
             { "exception.stacktrace", ex.StackTrace },
         }));
+    }
+
+    /// <summary>
+    /// Inspects the result value for collection count and adds it to the feature context
+    /// as "result_count" if not already present. Supports both direct collections and
+    /// response objects with a single collection property.
+    /// </summary>
+    private static void InspectResultCount<TRequest, TResult>(FeatureContext<TRequest>? context, TResult? value)
+    {
+        if (context is null || value is null)
+        {
+            return;
+        }
+
+        // Don't override manually-set result_count
+        if (context.WideEventContext.ContainsKey("result_count"))
+        {
+            return;
+        }
+
+        // Case 1: Result itself is a collection
+        if (value is ICollection collection)
+        {
+            context.AddContext("result_count", collection.Count);
+            return;
+        }
+
+        if (value is IReadOnlyCollection<object> readOnlyCollection)
+        {
+            context.AddContext("result_count", readOnlyCollection.Count);
+            return;
+        }
+
+        // Case 2: Result has a property that is a collection (e.g., Response.Items, Response.Pods)
+        var collectionProp = GetCollectionProperty(typeof(TResult));
+        if (collectionProp is not null)
+        {
+            var propValue = collectionProp.GetValue(value);
+            if (propValue is ICollection col)
+            {
+                context.AddContext("result_count", col.Count);
+            }
+            else if (propValue is IEnumerable enumerable)
+            {
+                // IReadOnlyCollection<T> doesn't have a non-generic .Count, use ICollection or Count property
+                var countProp = propValue.GetType().GetProperty("Count");
+                if (countProp is not null)
+                {
+                    context.AddContext("result_count", countProp.GetValue(propValue));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Finds the first public property on a type that implements a collection interface.
+    /// Cached per type for performance.
+    /// </summary>
+    private static PropertyInfo? GetCollectionProperty(Type type)
+    {
+        if (CollectionPropertyCache.TryGetValue(type, out var cached))
+        {
+            return cached;
+        }
+
+        PropertyInfo? found = null;
+        foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            var propType = prop.PropertyType;
+            if (typeof(ICollection).IsAssignableFrom(propType)
+                || propType.GetInterfaces().Any(i =>
+                    i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IReadOnlyCollection<>)))
+            {
+                found = prop;
+                break;
+            }
+        }
+
+        CollectionPropertyCache[type] = found;
+        return found;
     }
 
     private static class FeatureTypes
