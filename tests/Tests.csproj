@@ -23,6 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Analyzers/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\src\VsaResults.csproj" />
     <ProjectReference Include="..\src\VsaResults.Features\VsaResults.Features.csproj" />
     <ProjectReference Include="..\src\VsaResults.AspNetCore\VsaResults.AspNetCore.csproj" />

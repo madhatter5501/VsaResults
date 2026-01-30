@@ -24,6 +24,7 @@
     <Compile Remove="VsaResults.Messaging.RabbitMq/**/*.cs" />
     <Compile Remove="VsaResults.Messaging.Kafka/**/*.cs" />
     <Compile Remove="VsaResults.Messaging.AzureServiceBus/**/*.cs" />
+    <Compile Remove="VsaResults.Analyzers/**/*.cs" />
   </ItemGroup>
 
   <PropertyGroup>

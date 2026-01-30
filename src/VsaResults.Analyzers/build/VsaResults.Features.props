@@ -1,0 +1,13 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Default: off (analyzer disabled). Set to 'warn' or 'error' to enable. -->
+    <VsaWideEventEnforcement Condition="'$(VsaWideEventEnforcement)' == ''">off</VsaWideEventEnforcement>
+  </PropertyGroup>
+
+  <!-- Make the property visible to the Roslyn analyzer at compile time -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="VsaWideEventEnforcement" />
+  </ItemGroup>
+
+</Project>
