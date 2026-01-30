@@ -63,9 +63,9 @@ Each component has a no-op default (`NoOpValidator`, `NoOpRequirements`, `NoOpSi
 ### Wide Events / Canonical Log Lines (`src/ErrorOr/WideEvents/`)
 
 One structured log event per feature execution containing full context:
-- `FeatureWideEvent` - The event model with timing, outcome, errors, trace context
-- `FeatureWideEventBuilder` - Fluent builder accumulated during execution
-- `IWideEventEmitter` - Abstraction for emitting events (e.g., `SerilogWideEventEmitter`)
+- `WideEvent` - The event model with composable segments (Feature, Error, Message, Context)
+- `WideEventBuilder` - Fluent builder accumulated during execution
+- `IWideEventEmitter` - Abstraction for emitting events (`EmitAsync`/`Emit`)
 
 ### ASP.NET Core Integration (`src/ErrorOr/AspNetCore/`)
 

@@ -1118,7 +1118,7 @@ Wide Events (also known as Canonical Log Lines) capture a single comprehensive s
 
 ## Wide Event Fields
 
-The `FeatureWideEvent` includes:
+The `WideEvent` includes:
 
 | Category | Fields |
 |----------|--------|
@@ -1129,15 +1129,15 @@ The `FeatureWideEvent` includes:
 | **Timing** | `ValidationMs`, `RequirementsMs`, `ExecutionMs`, `SideEffectsMs`, `TotalMs` |
 | **Outcome** | `Outcome` (success, validation_failure, execution_failure, etc.) |
 | **Error Context** | `ErrorCode`, `ErrorType`, `ErrorMessage`, `FailedAtStage` |
-| **Business Context** | `RequestContext` dictionary with custom fields |
+| **Business Context** | `Context` dictionary with custom fields |
 
 ## Using Wide Events
 
 ```cs
-// Create an emitter (uses ILogger under the hood)
-var emitter = new SerilogWideEventEmitter(logger);
+// Register wide events in DI
+builder.Services.AddWideEvents();
 
-// Execute with wide event emission
+// Execute with wide event emission (emitter injected automatically via FeatureHandler/FeatureController)
 var result = await feature.ExecuteAsync(request, emitter);
 ```
 
@@ -1146,11 +1146,12 @@ var result = await feature.ExecuteAsync(request, emitter);
 Implement `IWideEventEmitter` to integrate with your telemetry system:
 
 ```cs
-public class OpenTelemetryWideEventEmitter : IWideEventEmitter
+public class CustomWideEventSink : IWideEventSink
 {
-    public void Emit(FeatureWideEvent wideEvent)
+    public ValueTask WriteAsync(WideEvent wideEvent, CancellationToken ct = default)
     {
-        // Emit to OpenTelemetry, Datadog, Honeycomb, etc.
+        // Write to OpenTelemetry, Datadog, Honeycomb, etc.
+        return ValueTask.CompletedTask;
     }
 }
 ```
