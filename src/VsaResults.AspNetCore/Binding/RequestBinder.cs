@@ -54,6 +54,11 @@ public static class RequestBinder
                 };
 
                 var isProvided = value is not null;
+                if (!isProvided && info.AllowRouteFallback)
+                {
+                    value = BindFromRoute(context, info);
+                    isProvided = value is not null;
+                }
 
                 // Check for required properties
                 if (!isProvided && info.IsRequired)

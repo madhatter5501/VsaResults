@@ -21,12 +21,19 @@ internal sealed class PropertyBindingInfo
                        (PropertyType.IsGenericType &&
                         typeof(IEnumerable<>).IsAssignableFrom(PropertyType.GetGenericTypeDefinition()));
 
+        var parameter = GetMatchingParameter(property);
+
         // Determine binding source from attributes
-        var fromRoute = property.GetCustomAttribute<FromRouteAttribute>();
-        var fromQuery = property.GetCustomAttribute<FromQueryAttribute>();
-        var fromHeader = property.GetCustomAttribute<FromHeaderAttribute>();
-        var fromBody = property.GetCustomAttribute<FromBodyAttribute>();
-        var fromServices = property.GetCustomAttribute<FromServicesAttribute>();
+        var fromRoute = property.GetCustomAttribute<FromRouteAttribute>()
+                        ?? parameter?.GetCustomAttribute<FromRouteAttribute>();
+        var fromQuery = property.GetCustomAttribute<FromQueryAttribute>()
+                        ?? parameter?.GetCustomAttribute<FromQueryAttribute>();
+        var fromHeader = property.GetCustomAttribute<FromHeaderAttribute>()
+                         ?? parameter?.GetCustomAttribute<FromHeaderAttribute>();
+        var fromBody = property.GetCustomAttribute<FromBodyAttribute>()
+                       ?? parameter?.GetCustomAttribute<FromBodyAttribute>();
+        var fromServices = property.GetCustomAttribute<FromServicesAttribute>()
+                           ?? parameter?.GetCustomAttribute<FromServicesAttribute>();
 
         if (fromRoute is not null)
         {
@@ -67,13 +74,22 @@ internal sealed class PropertyBindingInfo
             SourceName = Source == BindingSource.Query ? "query" : "body";
         }
 
+        HasExplicitSource = fromRoute is not null ||
+                            fromQuery is not null ||
+                            fromHeader is not null ||
+                            fromBody is not null ||
+                            fromServices is not null;
+        AllowRouteFallback = !HasExplicitSource && IsSimpleType(PropertyType);
+
         // Check if required
         IsRequired = property.GetCustomAttribute<System.ComponentModel.DataAnnotations.RequiredAttribute>() is not null
+                     || parameter?.GetCustomAttribute<System.ComponentModel.DataAnnotations.RequiredAttribute>() is not null
                      || (property.PropertyType.IsValueType && Nullable.GetUnderlyingType(property.PropertyType) is null
                          && property.GetCustomAttribute<FromRouteAttribute>() is not null);
 
         // Check for default value
-        var defaultAttr = property.GetCustomAttribute<System.ComponentModel.DefaultValueAttribute>();
+        var defaultAttr = property.GetCustomAttribute<System.ComponentModel.DefaultValueAttribute>()
+                          ?? parameter?.GetCustomAttribute<System.ComponentModel.DefaultValueAttribute>();
         if (defaultAttr is not null)
         {
             HasDefaultValue = true;
@@ -102,6 +118,12 @@ internal sealed class PropertyBindingInfo
     /// <summary>Gets a value indicating whether the property is required.</summary>
     public bool IsRequired { get; }
 
+    /// <summary>Gets a value indicating whether the binding source was explicitly specified.</summary>
+    public bool HasExplicitSource { get; }
+
+    /// <summary>Gets a value indicating whether to allow route fallback when unbound.</summary>
+    public bool AllowRouteFallback { get; }
+
     /// <summary>Gets a value indicating whether the property is a collection.</summary>
     public bool IsCollection { get; }
 
@@ -125,5 +147,21 @@ internal sealed class PropertyBindingInfo
                || underlying == typeof(TimeSpan)
                || underlying == typeof(Guid)
                || underlying.IsEnum;
+    }
+
+    private static ParameterInfo? GetMatchingParameter(PropertyInfo property)
+    {
+        var declaringType = property.DeclaringType;
+        if (declaringType is null)
+        {
+            return null;
+        }
+
+        return declaringType
+            .GetConstructors()
+            .OrderByDescending(ctor => ctor.GetParameters().Length)
+            .SelectMany(ctor => ctor.GetParameters())
+            .FirstOrDefault(parameter =>
+                string.Equals(parameter.Name, property.Name, StringComparison.OrdinalIgnoreCase));
     }
 }
