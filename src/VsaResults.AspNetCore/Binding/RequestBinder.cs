@@ -31,11 +31,10 @@ public static class RequestBinder
     public static async ValueTask<VsaResult<TRequest>> BindAsync<TRequest>(
         HttpContext context,
         CancellationToken ct = default)
-        where TRequest : new()
     {
-        var request = new TRequest();
         var errors = new List<Error>();
         var bindingInfos = GetBindingInfos<TRequest>();
+        var boundValues = new Dictionary<string, BoundValue>(StringComparer.OrdinalIgnoreCase);
 
         // Pre-read body if any properties need it
         var bodyState = await ReadBodyIfNeededAsync(context, bindingInfos, ct);
@@ -54,8 +53,10 @@ public static class RequestBinder
                     _ => GetDefaultValue(info),
                 };
 
+                var isProvided = value is not null;
+
                 // Check for required properties
-                if (value is null && info.IsRequired)
+                if (!isProvided && info.IsRequired)
                 {
                     errors.Add(Error.Validation(
                         $"Binding.{info.PropertyName}.Required",
@@ -64,7 +65,7 @@ public static class RequestBinder
                 }
 
                 // Convert value if needed
-                if (value is not null && value.GetType() != info.PropertyType)
+                if (isProvided && value is not null && value.GetType() != info.PropertyType)
                 {
                     var convertResult = ConvertValue(value, info.PropertyType, info.BindingName);
                     if (convertResult.IsError)
@@ -76,7 +77,52 @@ public static class RequestBinder
                     value = convertResult.Value;
                 }
 
-                info.Property.SetValue(request, value);
+                boundValues[info.PropertyName] = new BoundValue(info, value, isProvided);
+            }
+            catch (Exception ex)
+            {
+                errors.Add(Error.Validation(
+                    $"Binding.{info.PropertyName}.Failed",
+                    $"Failed to bind '{info.BindingName}' from {info.SourceName}: {ex.Message}"));
+            }
+        }
+
+        if (errors.Count > 0)
+        {
+            return errors;
+        }
+
+        if (!TryCreateRequestInstance<TRequest>(boundValues, out var request, out var ctorParameters, out var createErrors))
+        {
+            return createErrors;
+        }
+
+        foreach (var info in bindingInfos)
+        {
+            if (!boundValues.TryGetValue(info.PropertyName, out var bound))
+            {
+                continue;
+            }
+
+            if (!bound.IsProvided && ctorParameters.Contains(info.PropertyName))
+            {
+                continue;
+            }
+
+            var valueToSet = bound.IsProvided
+                ? bound.Value
+                : info.HasDefaultValue
+                    ? info.DefaultValue
+                    : null;
+
+            if (!bound.IsProvided && valueToSet is null && !info.HasDefaultValue)
+            {
+                continue;
+            }
+
+            try
+            {
+                info.Property.SetValue(request, valueToSet);
             }
             catch (Exception ex)
             {
@@ -244,6 +290,97 @@ public static class RequestBinder
             : null;
     }
 
+    private static bool TryCreateRequestInstance<TRequest>(
+        Dictionary<string, BoundValue> boundValues,
+        out TRequest request,
+        out HashSet<string> ctorParameters,
+        out List<Error> errors)
+    {
+        errors = [];
+        ctorParameters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var requestType = typeof(TRequest);
+        var parameterless = requestType.GetConstructor(Type.EmptyTypes);
+        if (parameterless is not null)
+        {
+            request = (TRequest)Activator.CreateInstance(requestType)!;
+            return true;
+        }
+
+        var constructors = requestType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
+            .OrderByDescending(c => c.GetParameters().Length)
+            .ToArray();
+
+        if (constructors.Length == 0)
+        {
+            errors.Add(Error.Validation(
+                "Binding.Request.CreationFailed",
+                $"No public constructors found for request type '{requestType.Name}'."));
+            request = default!;
+            return false;
+        }
+
+        var ctor = constructors[0];
+        var parameters = ctor.GetParameters();
+        var args = new object?[parameters.Length];
+
+        for (var i = 0; i < parameters.Length; i++)
+        {
+            var parameter = parameters[i];
+            if (parameter.Name is null)
+            {
+                errors.Add(Error.Validation(
+                    "Binding.Request.CreationFailed",
+                    $"Constructor parameter name missing for request type '{requestType.Name}'."));
+                request = default!;
+                return false;
+            }
+
+            ctorParameters.Add(parameter.Name);
+
+            if (boundValues.TryGetValue(parameter.Name, out var bound) && bound.IsProvided)
+            {
+                args[i] = bound.Value;
+                continue;
+            }
+
+            if (parameter.HasDefaultValue)
+            {
+                args[i] = parameter.DefaultValue;
+                continue;
+            }
+
+            if (boundValues.TryGetValue(parameter.Name, out bound) && bound.Info.HasDefaultValue)
+            {
+                args[i] = bound.Info.DefaultValue;
+                continue;
+            }
+
+            args[i] = GetDefaultValue(parameter.ParameterType);
+        }
+
+        try
+        {
+            request = (TRequest)ctor.Invoke(args);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            errors.Add(Error.Validation(
+                "Binding.Request.CreationFailed",
+                $"Failed to create request type '{requestType.Name}': {ex.Message}"));
+            request = default!;
+            return false;
+        }
+    }
+
+    private static object? GetDefaultValue(Type type)
+    {
+        return type.IsValueType
+            ? Activator.CreateInstance(type)
+            : null;
+    }
+
     private static VsaResult<object?> ConvertValue(object value, Type targetType, string parameterName)
     {
         try
@@ -321,6 +458,8 @@ public static class RequestBinder
 
         return char.ToLowerInvariant(name[0]) + name[1..];
     }
+
+    private readonly record struct BoundValue(PropertyBindingInfo Info, object? Value, bool IsProvided);
 
     /// <summary>
     /// State container for parsed request body.

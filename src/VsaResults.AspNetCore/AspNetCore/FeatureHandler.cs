@@ -142,11 +142,11 @@ public static class FeatureHandler
     /// Creates a delegate handler for a query feature with manual binding.
     /// Emits wide events for binding failures, providing full observability.
     /// </summary>
-    /// <typeparam name="TRequest">The request type (must have parameterless constructor).</typeparam>
+    /// <typeparam name="TRequest">The request type.</typeparam>
     /// <typeparam name="TResult">The result type.</typeparam>
     /// <returns>A delegate that can be used with MapGet/MapPost.</returns>
     public static Delegate QueryOkBound<TRequest, TResult>()
-        where TRequest : notnull, new() =>
+        where TRequest : notnull =>
         async (
             HttpContext httpContext,
             IQueryFeature<TRequest, TResult> feature,
@@ -187,11 +187,11 @@ public static class FeatureHandler
     /// Creates a delegate handler for a mutation feature with manual binding.
     /// Emits wide events for binding failures, providing full observability.
     /// </summary>
-    /// <typeparam name="TRequest">The request type (must have parameterless constructor).</typeparam>
+    /// <typeparam name="TRequest">The request type.</typeparam>
     /// <typeparam name="TResult">The result type.</typeparam>
     /// <returns>A delegate that can be used with MapPost/MapPut/MapDelete.</returns>
     public static Delegate MutationOkBound<TRequest, TResult>()
-        where TRequest : notnull, new() =>
+        where TRequest : notnull =>
         async (
             HttpContext httpContext,
             IMutationFeature<TRequest, TResult> feature,
@@ -232,12 +232,12 @@ public static class FeatureHandler
     /// Creates a delegate handler for a mutation feature with manual binding that returns Created.
     /// Emits wide events for binding failures, providing full observability.
     /// </summary>
-    /// <typeparam name="TRequest">The request type (must have parameterless constructor).</typeparam>
+    /// <typeparam name="TRequest">The request type.</typeparam>
     /// <typeparam name="TResult">The result type.</typeparam>
     /// <param name="locationSelector">Function to generate the location URI from the result.</param>
     /// <returns>A delegate that can be used with MapPost.</returns>
     public static Delegate MutationCreatedBound<TRequest, TResult>(Func<TResult, string> locationSelector)
-        where TRequest : notnull, new() =>
+        where TRequest : notnull =>
         async (
             HttpContext httpContext,
             IMutationFeature<TRequest, TResult> feature,
@@ -278,10 +278,10 @@ public static class FeatureHandler
     /// Creates a delegate handler for a mutation feature with manual binding that returns NoContent.
     /// Emits wide events for binding failures, providing full observability.
     /// </summary>
-    /// <typeparam name="TRequest">The request type (must have parameterless constructor).</typeparam>
+    /// <typeparam name="TRequest">The request type.</typeparam>
     /// <returns>A delegate that can be used with MapPut/MapDelete.</returns>
     public static Delegate MutationNoContentBound<TRequest>()
-        where TRequest : notnull, new() =>
+        where TRequest : notnull =>
         async (
             HttpContext httpContext,
             IMutationFeature<TRequest, Unit> feature,
